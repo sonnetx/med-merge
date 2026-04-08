@@ -1,0 +1,22 @@
+dataset:
+  name: chexpert
+  source: local
+  num_classes: 5
+  task_type: multilabel
+  image_size: 224
+  class_names:
+    - Atelectasis
+    - Cardiomegaly
+    - Consolidation
+    - Edema
+    - Pleural Effusion
+  label_columns:
+    - Atelectasis
+    - Cardiomegaly
+    - Consolidation
+    - Edema
+    - Pleural Effusion
+
+  # Sherlock paths (override via CLI --data-dir for other environments)
+  data_dir: /scratch/groups/roxanad/datasets/chexpert/combined_train_valid_chexpert_v1.0
+  csv_path: /scratch/groups/roxanad/datasets/chexpert/explore_chexpert/train_valid_combined.csv

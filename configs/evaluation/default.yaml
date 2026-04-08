@@ -1,0 +1,8 @@
+evaluation:
+  batch_size: 64
+  num_calibration_bins: 15
+  bootstrap_n: 1000
+  bootstrap_ci: 0.95
+  run_fairness: true
+  fairness_dataset: fitzpatrick17k
+  num_workers: 4

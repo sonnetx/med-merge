@@ -1,0 +1,6 @@
+merging:
+  method: simple_avg
+  datasets:
+    - isic2017
+    - chexpert
+    - tcga

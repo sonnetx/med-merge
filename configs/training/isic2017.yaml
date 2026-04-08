@@ -1,0 +1,7 @@
+training:
+  epochs: 20
+  batch_size: 32
+  learning_rate: 1.0e-5
+  use_balanced_sampler: true
+  use_class_weights: true
+  early_stopping_patience: 5

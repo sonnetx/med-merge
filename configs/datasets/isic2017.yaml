@@ -1,0 +1,16 @@
+dataset:
+  name: isic2017
+  source: local
+  num_classes: 3
+  task_type: multiclass
+  image_size: 224
+  class_names:
+    - nevus
+    - melanoma
+    - seborrheic_keratosis
+  split_seed: 42
+  split_ratios: [0.8, 0.1, 0.1]
+
+  # Sherlock paths (override via CLI --data-dir for other environments)
+  data_dir: /scratch/groups/roxanad/datasets/isic/challenges/2017/merged_isic_2017_data/images
+  csv_path: /scratch/groups/roxanad/datasets/isic/challenges/2017/merged_isic_2017_data/merged_ground_truth_part3.csv

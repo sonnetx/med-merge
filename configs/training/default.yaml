@@ -1,0 +1,18 @@
+training:
+  seed: 42
+  epochs: 10
+  batch_size: 32
+  learning_rate: 1.0e-5
+  weight_decay: 0.01
+  warmup_fraction: 0.1
+  scheduler: cosine
+  optimizer: adamw
+  max_grad_norm: 1.0
+  mixed_precision: true
+  num_workers: 4
+  pin_memory: true
+  early_stopping_patience: 5
+  save_best_only: true
+  finetune_strategy: full
+  use_balanced_sampler: false
+  use_class_weights: false

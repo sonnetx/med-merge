@@ -1,0 +1,15 @@
+dataset:
+  name: tcga
+  source: local
+  num_classes: 1
+  task_type: binary
+  image_size: 224
+  class_names:
+    - LUAD
+    - LUSC
+  split_seed: 42
+  split_ratios: [0.8, 0.1, 0.1]
+
+  # Sherlock paths (override via CLI --data-dir for other environments)
+  data_dir: /scratch/groups/roxanad/datasets/tcga/thumbnails
+  csv_path: /scratch/groups/roxanad/datasets/tcga/tables/dataset.csv

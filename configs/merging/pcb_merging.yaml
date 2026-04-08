@@ -1,0 +1,7 @@
+merging:
+  method: pcb_merging
+  datasets:
+    - isic2017
+    - chexpert
+    - tcga
+  run_hyperopt: false

@@ -1,0 +1,9 @@
+seed: 42
+device: cuda
+data_dir: ./data
+output_dir: ./outputs
+
+wandb:
+  project: med-merge
+  entity: null
+  mode: disabled
