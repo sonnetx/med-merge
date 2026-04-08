@@ -52,7 +52,10 @@ def load_chexpert(
         csv_path = str(Path(data_dir) / "train_valid_combined.csv")
 
     df = pd.read_csv(csv_path)
+    # CheXpert encodes: 1=positive, 0=negative, -1=uncertain, NaN=missing
+    # U-Ones policy: treat uncertain (-1) as positive (1)
     labels = df[LABEL_COLUMNS].fillna(0.0).values.astype(np.float32)
+    labels[labels == -1.0] = 1.0
 
     mgr = SplitManager("chexpert", output_dir=splits_dir)
     splits = mgr.get_or_create_split(

@@ -20,9 +20,9 @@ class ModelConfig(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    backbone: str = "openai/clip-vit-base-patch16"
+    backbone: str = "facebook/dinov3-vits16-pretrain-lvd1689m"
     backend: Literal["huggingface", "timm"] = "huggingface"
-    hidden_size: int = 768
+    hidden_size: int = 384
     num_layers: int = 12
     head_type: Literal["linear", "mlp"] = "linear"
     freeze_encoder: bool = False

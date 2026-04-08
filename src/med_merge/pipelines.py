@@ -76,10 +76,24 @@ def run_merge(
     from med_merge.models.factory import load_pretrained_encoder
     from med_merge.utils.io import save_json, save_state_dict
 
+    import json
+
+    datasets = datasets or ALL_DATASETS
+
+    # Auto-detect model config from checkpoint dir if not provided
+    if model_config is None:
+        for ds in datasets:
+            cfg_path = Path(task_vector_dir).parent / "checkpoints" / ds / "model_config.json"
+            if cfg_path.exists():
+                model_config = ModelConfig.model_validate(
+                    json.loads(cfg_path.read_text())
+                )
+                logger.info(f"Loaded model config from {cfg_path}: backbone={model_config.backbone}")
+                break
+
     model_config = model_config or ModelConfig()
     pretrained = load_pretrained_encoder(model_config)
 
-    datasets = datasets or ALL_DATASETS
     task_vectors = {}
     for ds in datasets:
         tv_path = Path(task_vector_dir) / ds / "task_vector.pt"
@@ -126,7 +140,21 @@ def run_evaluation(
     from med_merge.evaluation.evaluator import Evaluator
     from med_merge.utils.io import load_state_dict, save_json
 
+    import json
+
     encoder = load_state_dict(Path(model_path))
+
+    # Auto-detect model config from checkpoint dir if not provided
+    if model_config is None:
+        for ds_name in datasets:
+            cfg_path = Path(head_dir) / ds_name / "model_config.json"
+            if cfg_path.exists():
+                model_config = ModelConfig.model_validate(
+                    json.loads(cfg_path.read_text())
+                )
+                logger.info(f"Loaded model config from {cfg_path}: backbone={model_config.backbone}")
+                break
+
     evaluator = Evaluator(eval_config or EvaluationConfig(), model_config, device)
 
     all_metrics = {}

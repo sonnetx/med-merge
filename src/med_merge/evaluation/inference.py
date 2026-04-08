@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.cuda.amp import autocast
+from torch.amp import autocast
 from torch.utils.data import DataLoader
 
 
@@ -41,7 +41,7 @@ class InferenceRunner:
 
         for images, labels in loader:
             images = images.to(self.device, non_blocking=True)
-            with autocast(enabled=self.use_amp):
+            with autocast("cuda", enabled=self.use_amp):
                 logits = model(images)
             all_logits.append(logits.cpu())
             all_labels.append(labels.cpu())

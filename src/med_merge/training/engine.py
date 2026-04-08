@@ -7,7 +7,7 @@ from typing import Callable, Optional
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -48,7 +48,7 @@ class TrainingEngine:
             labels = labels.to(self.device, non_blocking=True)
 
             self.optimizer.zero_grad()
-            with autocast(enabled=self.use_amp):
+            with autocast("cuda", enabled=self.use_amp):
                 logits = self.model(images)
                 loss = self.loss_fn(logits, labels)
 
@@ -85,7 +85,7 @@ class TrainingEngine:
             images = images.to(self.device, non_blocking=True)
             labels = labels.to(self.device, non_blocking=True)
 
-            with autocast(enabled=self.use_amp):
+            with autocast("cuda", enabled=self.use_amp):
                 logits = self.model(images)
                 loss = self.loss_fn(logits, labels)
 

@@ -37,6 +37,7 @@ def download(datasets: tuple[str, ...], data_dir: str) -> None:
 @click.option("--config", "-c", type=click.Path(exists=True), default=None)
 @click.option("--output-dir", "-o", type=click.Path(), default="./outputs")
 @click.option("--data-dir", type=click.Path(), default="./data")
+@click.option("--backbone", "-b", type=str, default=None, help="Backbone model ID (e.g. google/vit-base-patch16-224)")
 @click.option("--epochs", type=int, default=None, help="Override number of epochs")
 @click.option("--batch-size", type=int, default=None, help="Override batch size")
 @click.option("--lr", type=float, default=None, help="Override learning rate")
@@ -48,6 +49,7 @@ def train(
     config: str | None,
     output_dir: str,
     data_dir: str,
+    backbone: str | None,
     epochs: int | None,
     batch_size: int | None,
     lr: float | None,
@@ -103,6 +105,14 @@ def train(
     experiment.device = device
 
     # CLI overrides
+    if backbone is not None:
+        from med_merge.models.factory import BACKBONE_REGISTRY
+        experiment.model.backbone = backbone
+        # Auto-set hidden_size/num_layers if backbone is in registry
+        if backbone in BACKBONE_REGISTRY:
+            _, hs, nl = BACKBONE_REGISTRY[backbone]
+            experiment.model.hidden_size = hs
+            experiment.model.num_layers = nl
     if epochs is not None:
         experiment.training.epochs = epochs
     if batch_size is not None:
@@ -135,6 +145,7 @@ def train(
 @click.option("--task-vector-dir", type=click.Path(), default="./outputs/task_vectors")
 @click.option("--output-dir", "-o", type=click.Path(), default="./outputs/merged")
 @click.option("--datasets", "-d", multiple=True, default=ALL_DATASETS)
+@click.option("--backbone", "-b", type=str, default=None, help="Backbone model ID")
 @click.option("--hyperopt/--no-hyperopt", default=False)
 @click.option("--device", type=str, default="cuda")
 def merge(
@@ -144,17 +155,26 @@ def merge(
     task_vector_dir: str,
     output_dir: str,
     datasets: tuple[str, ...],
+    backbone: str | None,
     hyperopt: bool,
     device: str,
 ) -> None:
     """Merge task-specific models using specified method."""
+    from med_merge.config.schema import ModelConfig
     from med_merge.pipelines import run_merge
+
+    model_config = None
+    if backbone:
+        from med_merge.models.factory import BACKBONE_REGISTRY
+        _, hs, nl = BACKBONE_REGISTRY.get(backbone, (None, 768, 12))
+        model_config = ModelConfig(backbone=backbone, hidden_size=hs, num_layers=nl)
 
     result = run_merge(
         method=method,
         task_vector_dir=task_vector_dir,
         output_dir=output_dir,
         datasets=list(datasets),
+        model_config=model_config,
         device=device,
     )
     click.echo(f"Merge complete: {result}")
@@ -165,6 +185,7 @@ def merge(
 @click.option("--datasets", "-d", multiple=True, default=ALL_DATASETS)
 @click.option("--head-dir", type=click.Path(), default="./outputs/checkpoints")
 @click.option("--data-dir", type=click.Path(), default="./data")
+@click.option("--backbone", "-b", type=str, default=None, help="Backbone model ID")
 @click.option("--output-dir", "-o", type=click.Path(), default="./outputs/results")
 @click.option("--device", type=str, default="cuda")
 def evaluate(
@@ -172,17 +193,26 @@ def evaluate(
     datasets: tuple[str, ...],
     head_dir: str,
     data_dir: str,
+    backbone: str | None,
     output_dir: str,
     device: str,
 ) -> None:
     """Evaluate a merged model on benchmark datasets."""
+    from med_merge.config.schema import ModelConfig
     from med_merge.pipelines import run_evaluation
+
+    model_config = None
+    if backbone:
+        from med_merge.models.factory import BACKBONE_REGISTRY
+        _, hs, nl = BACKBONE_REGISTRY.get(backbone, (None, 768, 12))
+        model_config = ModelConfig(backbone=backbone, hidden_size=hs, num_layers=nl)
 
     all_metrics = run_evaluation(
         model_path=model_path,
         datasets=list(datasets),
         head_dir=head_dir,
         data_dir=data_dir,
+        model_config=model_config,
         output_dir=output_dir,
         device=device,
     )

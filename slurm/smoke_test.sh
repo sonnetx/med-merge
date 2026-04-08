@@ -25,8 +25,13 @@ ml gcc/12.4.0
 ml python/3.12.1
 ml cuda/12.4.0
 
-# --- Secrets (HF_TOKEN for DINOv3, etc.) ---
+# --- Secrets (HF_TOKEN for DINOv3, WANDB_API_KEY, etc.) ---
 [ -f "$HOME/.secrets" ] && source "$HOME/.secrets"
+
+# Auto-enable wandb if API key is available
+if [ -z "${WANDB_MODE:-}" ] && [ -n "${WANDB_API_KEY:-}" ]; then
+    WANDB_MODE="online"
+fi
 
 echo "Python: $(which python3) — $(python3 --version)"
 
@@ -80,7 +85,7 @@ python3 -m med_merge.cli train \
     --batch-size "$BATCH_SIZE" \
     --output-dir "$OUTPUT_DIR" \
     --device "$DEVICE" \
-    --wandb-mode disabled
+    --wandb-mode "${WANDB_MODE:-disabled}"
 
 echo "ISIC 2017 training done."
 echo ""
@@ -95,7 +100,7 @@ python3 -m med_merge.cli train \
     --batch-size "$BATCH_SIZE" \
     --output-dir "$OUTPUT_DIR" \
     --device "$DEVICE" \
-    --wandb-mode disabled
+    --wandb-mode "${WANDB_MODE:-disabled}"
 
 echo "CheXpert training done."
 echo ""

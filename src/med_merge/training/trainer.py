@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 import torch
-from torch.cuda.amp import GradScaler
+from torch.amp import GradScaler
 
 from med_merge.config.schema import DatasetConfig, ModelConfig, TrainingConfig
 from med_merge.merging.task_vector import TaskVector
@@ -76,7 +76,7 @@ class Trainer:
         optimizer = create_optimizer(self.model, training_config)
         total_steps = len(self.data_module.train_loader) * training_config.epochs
         scheduler = create_scheduler(optimizer, training_config, total_steps)
-        scaler = GradScaler(enabled=training_config.mixed_precision)
+        scaler = GradScaler("cuda", enabled=training_config.mixed_precision)
 
         # Engine
         self.engine = TrainingEngine(
@@ -153,4 +153,5 @@ class Trainer:
         task_vector.save(tv_dir / "task_vector.pt")
 
         save_json(best_metrics, self.output_dir / "best_metrics.json")
+        save_json(self.model_config.model_dump(), self.output_dir / "model_config.json")
         logger.info(f"Saved artifacts to {self.output_dir}")
