@@ -12,8 +12,6 @@ from torch.utils.data import DataLoader
 from med_merge.config.schema import MergingConfig
 from med_merge.merging.base import BaseMerger
 from med_merge.merging.task_vector import TaskVector
-from med_merge.models.clip_classifier import CLIPClassifier
-
 logger = logging.getLogger(__name__)
 
 
@@ -26,16 +24,14 @@ def _evaluate_merged(
 ) -> dict[str, float]:
     """Evaluate a merged encoder on all validation sets. Returns aggregate metric."""
     from med_merge.evaluation.metrics import compute_metrics
+    from med_merge.models.factory import create_model
 
     all_metrics = {}
 
     for ds_name, loader in val_loaders.items():
         # Build model with merged encoder + dataset head
         config = dataset_configs[ds_name]
-        model = CLIPClassifier(
-            num_classes=config.num_classes,
-            task_type=config.task_type,
-        )
+        model = create_model(config)
         model.load_encoder_state_dict(merged_encoder)
         model.load_head_state_dict(heads[ds_name])
         model = model.to(device).eval()

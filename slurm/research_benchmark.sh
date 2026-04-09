@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=medmerge_research
 #SBATCH --partition=roxanad
-#SBATCH --time=72:00:00
-#SBATCH --mem=128G
+#SBATCH --time=48:00:00
+#SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
 #SBATCH -C GPU_MEM:80GB
 #SBATCH --gpus=1
@@ -70,7 +70,7 @@ cd "$PROJECT_DIR"
 mkdir -p logs
 
 # --- Experimental grid ---
-DATASETS="isic2017 chexpert tcga"
+DATASETS="${DATASETS:-isic2017 chexpert tcga}"
 SEEDS="${SEEDS:-42 123 456}"
 SKIP_TRAIN="${SKIP_TRAIN:-0}"
 DEVICE="cuda"
@@ -139,6 +139,11 @@ echo "============================================================"
 echo "[Merge] All backbones x seeds x methods"
 echo "============================================================"
 
+# Helper: convert space-separated list to repeated --datasets flags
+ds_flags() {
+    for ds in $1; do echo -n "--datasets $ds "; done
+}
+
 for BACKBONE in $BACKBONES; do
     BACKBONE_ID="${BACKBONE_IDS[$BACKBONE]}"
     for SEED in $SEEDS; do
@@ -157,6 +162,8 @@ for BACKBONE in $BACKBONES; do
             continue
         fi
 
+        DS_FLAGS=$(ds_flags "$TRAINED_DS")
+
         for METHOD in $METHODS; do
             echo "--- merge: backbone=$BACKBONE seed=$SEED method=$METHOD ---"
 
@@ -168,7 +175,8 @@ for BACKBONE in $BACKBONES; do
             python3 -m med_merge.cli merge \
                 --method "$METHOD" \
                 --backbone "$BACKBONE_ID" \
-                --datasets $TRAINED_DS \
+                $DS_FLAGS \
+                --hyperopt \
                 --checkpoint-dir "$OUTPUT_DIR/checkpoints" \
                 --task-vector-dir "$OUTPUT_DIR/task_vectors" \
                 --output-dir "$OUTPUT_DIR/merged" \
@@ -198,6 +206,8 @@ for BACKBONE in $BACKBONES; do
             fi
         done
 
+        DS_FLAGS=$(ds_flags "$TRAINED_DS")
+
         for METHOD in $METHODS; do
             MERGED_PATH="$OUTPUT_DIR/merged/$METHOD/merged_encoder.pt"
             if [ ! -f "$MERGED_PATH" ]; then
@@ -209,7 +219,7 @@ for BACKBONE in $BACKBONES; do
             python3 -m med_merge.cli evaluate \
                 --model-path "$MERGED_PATH" \
                 --backbone "$BACKBONE_ID" \
-                --datasets $TRAINED_DS \
+                $DS_FLAGS \
                 --head-dir "$OUTPUT_DIR/checkpoints" \
                 --output-dir "$OUTPUT_DIR/results/$METHOD" \
                 --device "$DEVICE" \

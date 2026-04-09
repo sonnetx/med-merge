@@ -1,4 +1,7 @@
 training:
   epochs: 10
   batch_size: 32
-  learning_rate: 1.0e-5
+  learning_rate: 5.0e-5
+  weight_decay: 0.05
+  warmup_fraction: 0.1
+  early_stopping_patience: 3

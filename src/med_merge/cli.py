@@ -113,6 +113,10 @@ def train(
             _, hs, nl = BACKBONE_REGISTRY[backbone]
             experiment.model.hidden_size = hs
             experiment.model.num_layers = nl
+        # Auto-adjust LR per backbone (CLIP needs lower LR to avoid catastrophic forgetting)
+        if lr is None and "clip" in backbone.lower():
+            experiment.training.learning_rate = 1e-5
+            logger.info(f"Auto-set LR to 1e-5 for CLIP backbone")
     if epochs is not None:
         experiment.training.epochs = epochs
     if batch_size is not None:
@@ -131,10 +135,12 @@ def train(
         project="med-merge",
         mode=wandb_mode,
         config=experiment.model_dump(),
-        name=f"train-{dataset}",
+        name=f"train-{dataset}-{experiment.model.backbone.split('/')[-1]}-seed{seed}",
     )
+    exp_logger = ExperimentLogger(wandb_run)
 
-    metrics = run_training(experiment, output_dir=output_dir)
+    metrics = run_training(experiment, output_dir=output_dir, exp_logger=exp_logger)
+    exp_logger.finish()
     click.echo(f"Training complete. Best metrics: {metrics}")
 
 
@@ -175,6 +181,7 @@ def merge(
         output_dir=output_dir,
         datasets=list(datasets),
         model_config=model_config,
+        run_hyperopt=hyperopt,
         device=device,
     )
     click.echo(f"Merge complete: {result}")

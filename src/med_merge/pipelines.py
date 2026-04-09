@@ -43,6 +43,7 @@ def _load_dataset_config(ds_name: str, fallback_data_dir: str) -> DatasetConfig:
 def run_training(
     experiment: ExperimentConfig,
     output_dir: str = "./outputs",
+    exp_logger=None,
 ) -> dict[str, float]:
     """Fine-tune a model on a single dataset. Returns best metrics."""
     from med_merge.training.trainer import Trainer
@@ -55,6 +56,7 @@ def run_training(
         model_config=experiment.model,
         output_dir=output_dir,
         device=experiment.device,
+        exp_logger=exp_logger,
     )
     return trainer.train()
 
@@ -66,6 +68,7 @@ def run_merge(
     datasets: list[str] | None = None,
     model_config: ModelConfig | None = None,
     merge_config: MergingConfig | None = None,
+    run_hyperopt: bool = False,
     device: str = "cuda",
 ) -> dict[str, Any]:
     """Merge task vectors using specified method. Returns merge metadata."""
@@ -74,7 +77,7 @@ def run_merge(
     from med_merge.merging.registry import build_merger
     from med_merge.merging.task_vector import TaskVector
     from med_merge.models.factory import load_pretrained_encoder
-    from med_merge.utils.io import save_json, save_state_dict
+    from med_merge.utils.io import load_state_dict, save_json, save_state_dict
 
     import json
 
@@ -112,7 +115,48 @@ def run_merge(
     config.datasets = list(task_vectors.keys())
 
     merger = build_merger(pretrained, config)
-    merged_state_dict = merger.merge(task_vectors)
+
+    # Hyperopt: sweep hyperparameters using validation data
+    if run_hyperopt and method not in ("simple_avg", "pcb_merging"):
+        logger.info(f"Running hyperopt for {method}...")
+        from med_merge.data.registry import build_dataset
+        from med_merge.data.transforms import get_eval_transform, norm_key_for_backbone
+        from torch.utils.data import DataLoader
+
+        nk = norm_key_for_backbone(model_config.backbone)
+        val_loaders = {}
+        heads = {}
+        dataset_configs_map = {}
+        for ds_name in task_vectors:
+            ds_config = _load_dataset_config(ds_name, "./data")
+            transform = get_eval_transform(ds_config.image_size, norm_key=nk)
+            extra_kw = {}
+            if ds_config.csv_path:
+                extra_kw["csv_path"] = ds_config.csv_path
+            val_ds = build_dataset(ds_name, ds_config.data_dir, split="validation",
+                                   transform=transform, **extra_kw)
+            val_loaders[ds_name] = DataLoader(val_ds, batch_size=64, shuffle=False,
+                                              num_workers=4, pin_memory=True)
+            head_path = Path(task_vector_dir).parent / "checkpoints" / ds_name / "head.pt"
+            if head_path.exists():
+                heads[ds_name] = load_state_dict(head_path)
+            dataset_configs_map[ds_name] = ds_config
+
+        if val_loaders and heads:
+            from med_merge.merging.hyperopt import MergingHyperoptimizer
+            hyperopt = MergingHyperoptimizer(type(merger), pretrained, config)
+            result = hyperopt.search(task_vectors, val_loaders, heads,
+                                     dataset_configs_map, device=device)
+            # Re-merge with best params
+            best_config = hyperopt._apply_params(result["best_params"])
+            merger = build_merger(pretrained, best_config)
+            merged_state_dict = merger.merge(task_vectors, **result["best_params"])
+            logger.info(f"Hyperopt best: {result['best_params']} -> {result['best_score']:.4f}")
+        else:
+            logger.warning("Hyperopt skipped: missing val loaders or heads")
+            merged_state_dict = merger.merge(task_vectors)
+    else:
+        merged_state_dict = merger.merge(task_vectors)
 
     out_path = Path(output_dir) / method
     out_path.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,9 @@
 training:
-  epochs: 20
+  epochs: 30
   batch_size: 32
-  learning_rate: 1.0e-5
+  learning_rate: 5.0e-5
+  weight_decay: 0.05
+  warmup_fraction: 0.1
   use_balanced_sampler: true
   use_class_weights: true
-  early_stopping_patience: 5
+  early_stopping_patience: 7

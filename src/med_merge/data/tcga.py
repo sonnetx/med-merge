@@ -28,14 +28,23 @@ def load_tcga(
     """Load TCGA LUAD-vs-LUSC with persistent splits."""
     data_dir_p = Path(data_dir)
     if csv_path is None:
-        csv_path = str(data_dir_p / "tables" / "dataset.csv")
+        # data_dir might be the thumbnails dir or the parent — try both
+        for candidate in [
+            data_dir_p.parent / "tables" / "dataset.csv",
+            data_dir_p / "tables" / "dataset.csv",
+        ]:
+            if candidate.exists():
+                csv_path = str(candidate)
+                break
+        if csv_path is None:
+            raise FileNotFoundError(f"No dataset.csv found near {data_dir}")
 
     df = pd.read_csv(csv_path)
     df = df[df["project_id"].isin(["TCGA-LUAD", "TCGA-LUSC"])].copy()
     df["label"] = df["project_id"].map({"TCGA-LUAD": 0, "TCGA-LUSC": 1})
 
-    # Filter to slides with thumbnails
-    thumb_dir = data_dir_p / "thumbnails"
+    # data_dir points directly to the thumbnails directory
+    thumb_dir = data_dir_p
     valid_mask = [
         (thumb_dir / f"{row['slide_id']}.jpg").exists()
         for _, row in df.iterrows()
