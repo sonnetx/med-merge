@@ -73,6 +73,41 @@ def _ece_from_confidence(
     return float(ece)
 
 
+def brier_score(
+    logits: np.ndarray,
+    labels: np.ndarray,
+    task_type: str,
+) -> float:
+    """Mean squared error between predicted probabilities and labels.
+
+    Multiclass/ordinal: MSE between softmax probs and one-hot targets,
+    averaged over samples and classes.
+    Multilabel: MSE between sigmoid probs and binary labels, averaged
+    over samples and labels.
+    Binary: MSE between sigmoid prob and label.
+    """
+    sigmoid = lambda x: 1.0 / (1.0 + np.exp(-np.clip(x, -500, 500)))
+
+    if task_type == "multilabel":
+        probs = sigmoid(logits)
+        return float(np.mean((probs - labels.astype(float)) ** 2))
+
+    if task_type == "binary":
+        if logits.ndim == 2 and logits.shape[1] == 1:
+            logits = logits[:, 0]
+        if labels.ndim == 2 and labels.shape[1] == 1:
+            labels = labels[:, 0]
+        probs = sigmoid(logits)
+        return float(np.mean((probs - labels.astype(float)) ** 2))
+
+    # multiclass / ordinal
+    probs = scipy_softmax(logits, axis=1)
+    n, k = probs.shape
+    onehot = np.zeros_like(probs)
+    onehot[np.arange(n), labels.astype(int)] = 1.0
+    return float(np.mean(np.sum((probs - onehot) ** 2, axis=1)))
+
+
 def reliability_diagram_data(
     logits: np.ndarray,
     labels: np.ndarray,

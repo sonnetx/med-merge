@@ -1,0 +1,22 @@
+dataset:
+  name: pathmnist
+  source: medmnist
+  num_classes: 9
+  task_type: multiclass
+  image_size: 224
+  class_names:
+    - ADI
+    - BACK
+    - DEB
+    - LYM
+    - MUC
+    - MUS
+    - NORM
+    - STR
+    - TUM
+  split_seed: 42
+  # MedMNIST has fixed splits; split_ratios are unused but kept for schema.
+  split_ratios: [0.8, 0.1, 0.1]
+
+  # data_dir is the MedMNIST cache root (will be auto-created if missing).
+  data_dir: /scratch/users/sonnet/medmnist

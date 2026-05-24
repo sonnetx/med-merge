@@ -144,6 +144,92 @@ def train(
     click.echo(f"Training complete. Best metrics: {metrics}")
 
 
+@cli.command("train-mtl")
+@click.option("--datasets", "-d", multiple=True, default=ALL_DATASETS,
+              help="Datasets to jointly train on")
+@click.option("--backbone", "-b", type=str, default=None,
+              help="Backbone model ID (defaults to ModelConfig default)")
+@click.option("--output-dir", "-o", type=click.Path(), default="./outputs")
+@click.option("--epochs", type=int, default=None)
+@click.option("--batch-size", type=int, default=None)
+@click.option("--lr", type=float, default=None)
+@click.option("--seed", type=int, default=42)
+@click.option("--device", type=str, default="cuda")
+@click.option("--wandb-mode", type=click.Choice(["online", "offline", "disabled"]),
+              default="disabled")
+def train_mtl(datasets, backbone, output_dir, epochs, batch_size, lr, seed,
+              device, wandb_mode):
+    """Multi-task joint-training baseline: one encoder + per-dataset heads."""
+    import logging as _logging
+
+    from med_merge.config.loader import load_yaml
+    from med_merge.config.schema import (
+        DatasetConfig, ModelConfig, TrainingConfig,
+    )
+    from med_merge.models.factory import BACKBONE_REGISTRY
+    from med_merge.training.mtl_trainer import MTLTrainer
+    from med_merge.utils.logging import ExperimentLogger, setup_wandb
+    from med_merge.utils.reproducibility import seed_everything
+
+    _logging.getLogger(__name__).info(
+        f"train-mtl: datasets={list(datasets)} backbone={backbone} seed={seed}"
+    )
+
+    seed_everything(seed)
+    configs_dir = Path(__file__).parent.parent.parent / "configs"
+
+    # Build per-dataset DatasetConfig
+    ds_configs: dict[str, DatasetConfig] = {}
+    for ds in datasets:
+        yaml_path = configs_dir / "datasets" / f"{ds}.yaml"
+        if yaml_path.exists():
+            ds_configs[ds] = DatasetConfig.model_validate(load_yaml(yaml_path)["dataset"])
+        else:
+            defaults = DATASET_DEFAULTS.get(ds, {})
+            ds_configs[ds] = DatasetConfig(name=ds, **defaults)
+
+    tr_config = TrainingConfig()
+    if epochs is not None: tr_config.epochs = epochs
+    if batch_size is not None: tr_config.batch_size = batch_size
+    if lr is not None: tr_config.learning_rate = lr
+
+    model_config = ModelConfig()
+    if backbone is not None:
+        model_config.backbone = backbone
+        if backbone in BACKBONE_REGISTRY:
+            _, hs, nl = BACKBONE_REGISTRY[backbone]
+            model_config.hidden_size = hs
+            model_config.num_layers = nl
+        if "clip" in backbone.lower() and lr is None:
+            tr_config.learning_rate = 1e-5
+
+    from med_merge.models.factory import alias_for
+
+    out_root = Path(output_dir) / alias_for(model_config.backbone) / f"seed_{seed}"
+
+    # Wandb
+    bb_name = model_config.backbone.split("/")[-1]
+    wandb_run = setup_wandb(
+        project="med-merge", mode=wandb_mode,
+        config={"datasets": list(datasets), "backbone": model_config.backbone,
+                "training": tr_config.model_dump()},
+        name=f"mtl-{bb_name}-seed{seed}",
+    )
+    exp_logger = ExperimentLogger(wandb_run)
+
+    trainer = MTLTrainer(
+        dataset_configs=ds_configs,
+        training_config=tr_config,
+        model_config=model_config,
+        output_dir=out_root,
+        device=device,
+        exp_logger=exp_logger,
+    )
+    metrics = trainer.train()
+    exp_logger.finish()
+    click.echo(f"MTL training complete. Aggregate={metrics.get('aggregate', 'N/A')}")
+
+
 @cli.command()
 @click.option("--method", "-m", required=True, type=click.Choice(ALL_METHODS))
 @click.option("--config", "-c", type=click.Path(exists=True), default=None)

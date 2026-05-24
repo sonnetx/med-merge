@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-ALL_DATASETS = ["isic2017", "chexpert", "tcga"]
+ALL_DATASETS = ["isic2017", "chexpert", "tcga", "nih_cxr", "pathmnist", "retinamnist"]
 
 ALL_METHODS = [
     "simple_avg",
@@ -23,6 +23,9 @@ PRIMARY_METRICS: dict[str, str] = {
     "isic2017": "balanced_accuracy",
     "chexpert": "macro_auroc",
     "tcga": "auroc",
+    "nih_cxr": "macro_auroc",
+    "pathmnist": "balanced_accuracy",
+    "retinamnist": "balanced_accuracy",
 }
 
 # Dataset metadata: num_classes, task_type, class_names
@@ -47,5 +50,28 @@ DATASET_DEFAULTS: dict[str, dict] = {
         "num_classes": 1,
         "task_type": "binary",
         "class_names": ["LUAD", "LUSC"],
+    },
+    "nih_cxr": {
+        "num_classes": 5,
+        "task_type": "multilabel",
+        "class_names": [
+            "Atelectasis",
+            "Cardiomegaly",
+            "Consolidation",
+            "Edema",
+            "Pleural Effusion",
+        ],
+    },
+    "pathmnist": {
+        "num_classes": 9,
+        "task_type": "multiclass",
+        "class_names": [
+            "ADI", "BACK", "DEB", "LYM", "MUC", "MUS", "NORM", "STR", "TUM",
+        ],
+    },
+    "retinamnist": {
+        "num_classes": 5,
+        "task_type": "multiclass",
+        "class_names": ["0", "1", "2", "3", "4"],
     },
 }

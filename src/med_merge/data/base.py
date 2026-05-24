@@ -79,8 +79,20 @@ class ImageListDataset(MedMergeDataset):
         return len(self._samples)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
-        source, label = self._samples[idx]
-        image = self._load_image(source)
+        n = len(self._samples)
+        for offset in range(n):
+            i = (idx + offset) % n
+            source, label = self._samples[i]
+            try:
+                image = self._load_image(source)
+                break
+            except (FileNotFoundError, OSError) as e:
+                if offset == 0:
+                    logger.warning(f"Skipping missing image {source!r}: {e}")
+                continue
+        else:
+            raise FileNotFoundError("No readable images left in dataset")
+
         if self.transform is not None:
             image = self.transform(image)
         label_tensor = self._encode_label(label)

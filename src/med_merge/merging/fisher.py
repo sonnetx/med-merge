@@ -38,6 +38,7 @@ class FisherMerger(BaseMerger):
         heads: Optional[dict[str, dict[str, torch.Tensor]]] = None,
         dataset_configs: Optional[dict[str, Any]] = None,
         fisher_cache_dir: Optional[str] = None,
+        model_config: Optional[Any] = None,
         **kwargs,
     ) -> dict[str, torch.Tensor]:
         alpha = alpha if alpha is not None else (self.config.fisher_alpha or self.config.alpha or 0.3)
@@ -54,26 +55,34 @@ class FisherMerger(BaseMerger):
                     fm = self.compute_fisher_diagonal(
                         tv, val_loaders[ds_name], heads[ds_name],
                         dataset_configs[ds_name], n_samples=n_samples,
+                        model_config=model_config,
                     )
                     fisher_matrices[ds_name] = fm
                     if fisher_cache_dir:
                         self._save_fisher(fisher_cache_dir, ds_name, fm)
                 else:
-                    # Fallback: uniform importance (= simple averaging)
+                    # No val data available — log loudly and degenerate to simple_avg
+                    logger.warning(
+                        f"FisherMerger: no val data / head / config for {ds_name}; "
+                        "falling back to uniform weights (equivalent to simple_avg)."
+                    )
                     fisher_matrices[ds_name] = {
                         k: torch.ones_like(t) for k, t in tv.vector.items()
                     }
 
-        # Fisher-weighted merge
+        # Fisher-weighted merge — keep everything on CPU
         merged_vector: dict[str, torch.Tensor] = {}
         keys = list(next(iter(task_vectors.values())).vector.keys())
 
         for key in keys:
-            numerator = torch.zeros_like(task_vectors[list(task_vectors)[0]].vector[key])
-            denominator = torch.zeros_like(numerator)
+            ref = task_vectors[list(task_vectors)[0]].vector[key].detach().cpu()
+            numerator = torch.zeros_like(ref)
+            denominator = torch.zeros_like(ref)
             for ds_name, tv in task_vectors.items():
-                f = fisher_matrices[ds_name].get(key, torch.ones_like(tv.vector[key]))
-                numerator += f * tv.vector[key]
+                tv_t = tv.vector[key].detach().cpu()
+                f = fisher_matrices[ds_name].get(key, torch.ones_like(tv_t))
+                f = f.detach().cpu()
+                numerator += f * tv_t
                 denominator += f
             merged_vector[key] = numerator / denominator.clamp(min=1e-8)
 
@@ -87,15 +96,13 @@ class FisherMerger(BaseMerger):
         head_state_dict: dict[str, torch.Tensor],
         dataset_config: Any,
         n_samples: int = 1000,
+        model_config: Optional[Any] = None,
     ) -> dict[str, torch.Tensor]:
         """Compute diagonal Fisher Information for encoder parameters."""
-        from med_merge.models.classifier import CLIPClassifier
+        from med_merge.models.factory import create_model
 
-        # Reconstruct full model
-        model = CLIPClassifier(
-            num_classes=dataset_config.num_classes,
-            task_type=dataset_config.task_type,
-        )
+        # Build model for the correct backbone (CLIP, ViT, DINOv3, RAD-DINO)
+        model = create_model(dataset_config, model_config=model_config)
         encoder_sd = task_vector.apply_to(self.pretrained, scaling_coef=1.0)
         model.load_encoder_state_dict(encoder_sd)
         model.load_head_state_dict(head_state_dict)
@@ -129,9 +136,9 @@ class FisherMerger(BaseMerger):
 
             count += images.size(0)
 
-        # Average
+        # Average and move to CPU for portable caching + cross-device merge math
         for k in fisher:
-            fisher[k] /= max(count, 1)
+            fisher[k] = (fisher[k] / max(count, 1)).cpu()
 
         logger.info(f"Computed Fisher diagonal ({count} samples, {len(fisher)} params)")
         return fisher

@@ -11,7 +11,11 @@ from torch.utils.data import DataLoader
 from med_merge.config.schema import DatasetConfig, EvaluationConfig, ModelConfig
 from med_merge.data.registry import build_dataset
 from med_merge.data.transforms import get_eval_transform, norm_key_for_backbone
-from med_merge.evaluation.calibration import expected_calibration_error, reliability_diagram_data
+from med_merge.evaluation.calibration import (
+    brier_score,
+    expected_calibration_error,
+    reliability_diagram_data,
+)
 from med_merge.evaluation.inference import InferenceResult, InferenceRunner
 from med_merge.evaluation.metrics import compute_metrics
 from med_merge.models.classifier import VisionClassifier
@@ -84,6 +88,12 @@ class Evaluator:
         )
         metrics["ece"] = ece
 
+        brier = brier_score(
+            result.logits, result.labels,
+            task_type=dataset_config.task_type,
+        )
+        metrics["brier"] = brier
+
         bin_centers, bin_accs, bin_counts = reliability_diagram_data(
             result.logits, result.labels,
             task_type=dataset_config.task_type,
@@ -94,6 +104,7 @@ class Evaluator:
             "metrics": metrics,
             "calibration": {
                 "ece": ece,
+                "brier": brier,
                 "bin_centers": bin_centers.tolist(),
                 "bin_accuracies": bin_accs.tolist(),
                 "bin_counts": bin_counts.tolist(),

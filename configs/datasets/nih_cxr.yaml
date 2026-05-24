@@ -1,0 +1,23 @@
+dataset:
+  name: nih_cxr
+  source: local
+  num_classes: 5
+  task_type: multilabel
+  image_size: 224
+  class_names:
+    - Atelectasis
+    - Cardiomegaly
+    - Consolidation
+    - Edema
+    - Pleural Effusion
+  label_columns:
+    - Atelectasis
+    - Cardiomegaly
+    - Consolidation
+    - Edema
+    - Pleural Effusion
+
+  # Override via CLI --data-dir for other environments.
+  # data_dir should contain images (flat or under ./images/) plus Data_Entry_2017.csv
+  data_dir: /scratch/groups/roxanad/datasets/nih-cxr14
+  csv_path: /scratch/groups/roxanad/datasets/nih-cxr14/Data_Entry_2017_v2020.csv

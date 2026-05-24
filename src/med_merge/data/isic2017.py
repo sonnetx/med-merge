@@ -1,9 +1,4 @@
 """ISIC 2017 dermoscopy dataset (3-class skin lesion classification).
-
-Matches compressed-perception's dermatology pipeline:
-- 3 classes: nevus (0), melanoma (1), seborrheic keratosis (2)
-- Labels derived from multi-column CSV (melanoma, seborrheic_keratosis)
-- Images loaded from local directory as .jpg
 """
 
 from __future__ import annotations
@@ -77,7 +72,18 @@ def load_isic2017(
                 "Pass csv_path explicitly."
             )
 
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path).reset_index(drop=True)
+    img_dir = data_dir_p
+
+    # Filter to rows whose image file actually exists on disk.
+    image_ids = df[image_id_column].tolist()
+    valid_mask = [(img_dir / f"{iid}{image_extension}").exists() for iid in image_ids]
+    n_missing = len(valid_mask) - sum(valid_mask)
+    if n_missing > 0:
+        logger.warning(
+            f"ISIC 2017: {n_missing}/{len(df)} images missing on disk; filtering them out."
+        )
+    df = df[valid_mask].reset_index(drop=True)
 
     # Encode labels
     labels = []
@@ -96,7 +102,6 @@ def load_isic2017(
     indices = splits.get(split, splits["train"])
 
     # Build samples: (image_path, label)
-    img_dir = data_dir_p
     samples = []
     for idx in indices:
         idx = int(idx)

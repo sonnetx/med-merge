@@ -12,6 +12,9 @@ _LOADER_REGISTRY: dict[str, tuple[str, str]] = {
     "isic2017": ("med_merge.data.isic2017", "load_isic2017"),
     "chexpert": ("med_merge.data.chexpert", "load_chexpert"),
     "tcga": ("med_merge.data.tcga", "load_tcga"),
+    "nih_cxr": ("med_merge.data.nih_cxr", "load_nih_cxr"),
+    "pathmnist": ("med_merge.data.medmnist_loader", "load_pathmnist"),
+    "retinamnist": ("med_merge.data.medmnist_loader", "load_retinamnist"),
 }
 
 

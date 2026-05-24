@@ -51,7 +51,20 @@ def load_chexpert(
     if csv_path is None:
         csv_path = str(Path(data_dir) / "train_valid_combined.csv")
 
-    df = pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path).reset_index(drop=True)
+    img_dir = Path(data_dir)
+
+    filenames = [_construct_filename(p) for p in df["Path"]]
+    valid_mask = [(img_dir / f).exists() for f in filenames]
+    n_missing = len(valid_mask) - sum(valid_mask)
+    if n_missing > 0:
+        logger.warning(
+            f"CheXpert: {n_missing}/{len(df)} images missing on disk under {img_dir}; "
+            "filtering them out before split."
+        )
+    df = df[valid_mask].reset_index(drop=True)
+    filenames = [f for f, v in zip(filenames, valid_mask) if v]
+
     # CheXpert encodes: 1=positive, 0=negative, -1=uncertain, NaN=missing
     # U-Ones policy: treat uncertain (-1) as positive (1)
     labels = df[LABEL_COLUMNS].fillna(0.0).values.astype(np.float32)
@@ -63,13 +76,11 @@ def load_chexpert(
     )
 
     indices = splits.get(split, splits["train"])
-    img_dir = Path(data_dir)
 
     samples = []
     for idx in indices:
         idx = int(idx)
-        filename = _construct_filename(df.iloc[idx]["Path"])
-        samples.append((img_dir / filename, labels[idx].tolist()))
+        samples.append((img_dir / filenames[idx], labels[idx].tolist()))
 
     logger.info(f"CheXpert {split}: {len(samples)} images")
 

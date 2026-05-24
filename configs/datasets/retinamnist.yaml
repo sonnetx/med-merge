@@ -1,0 +1,11 @@
+dataset:
+  name: retinamnist
+  source: medmnist
+  num_classes: 5
+  task_type: multiclass
+  image_size: 224
+  class_names: ["0", "1", "2", "3", "4"]
+  split_seed: 42
+  split_ratios: [0.8, 0.1, 0.1]
+
+  data_dir: /scratch/users/sonnet/medmnist

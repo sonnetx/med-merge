@@ -1,7 +1,4 @@
 """Typed configuration schema for med-merge experiments.
-
-Uses Pydantic v2 BaseModel for validation with ``extra="forbid"`` so
-typos in YAML keys are caught early.
 """
 
 from __future__ import annotations
@@ -108,22 +105,22 @@ class MergingConfig(BaseModel):
 
     # Task Arithmetic / shared scaling coefficient
     alpha: Optional[float] = None
-    alpha_search: list[float] = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.8, 1.0]
+    alpha_search: list[float] = [0.1, 0.3, 0.5, 0.7, 0.9]  # 5
 
     # TIES
     trim_fraction: float = 0.2
-    trim_fraction_search: list[float] = [0.05, 0.1, 0.2, 0.3]
+    trim_fraction_search: list[float] = [0.1, 0.2, 0.3]  # 3
 
     # DARE
     drop_rate: float = 0.5
-    drop_rate_search: list[float] = [0.1, 0.3, 0.5, 0.7, 0.9]
+    drop_rate_search: list[float] = [0.3, 0.5, 0.7]  # 3
     dare_seed: int = 42
 
     # LiNeS
     lines_alpha: float = 0.1  # base scale for shallowest layer
     lines_beta: float = 0.9  # scale range (deepest = alpha + beta)
-    lines_alpha_search: list[float] = [0.0, 0.05, 0.1, 0.2, 0.3]
-    lines_beta_search: list[float] = [0.5, 0.7, 0.9, 1.0]
+    lines_alpha_search: list[float] = [0.0, 0.1, 0.3]  # 3
+    lines_beta_search: list[float] = [0.5, 0.9]  # 2
 
     # SLERP (two-model only)
     slerp_t: float = 0.5

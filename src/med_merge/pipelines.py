@@ -109,6 +109,14 @@ def run_merge(
     if not task_vectors:
         raise FileNotFoundError("No task vectors found. Run training first.")
 
+    try:
+        from med_merge.evaluation.reporting import generate_task_vector_similarity_table
+        generate_task_vector_similarity_table(
+            task_vectors, Path(output_dir).parent / "analysis"
+        )
+    except Exception as e:
+        logger.warning(f"Could not write task-vector cosine table: {e}")
+
     config = merge_config or MergingConfig(method=method, datasets=list(task_vectors.keys()))
     if config.method != method:
         config.method = method
@@ -144,13 +152,29 @@ def run_merge(
 
         if val_loaders and heads:
             from med_merge.merging.hyperopt import MergingHyperoptimizer
-            hyperopt = MergingHyperoptimizer(type(merger), pretrained, config)
+            # Checkpoint file: write to method-specific dir so it's resumable
+            state_file = Path(output_dir) / method / "hyperopt_state.json"
+            # Fisher cache: per-backbone, shared across methods + hyperopt trials
+            fisher_cache_dir = Path(task_vector_dir).parent / "fisher_cache"
+            hyperopt = MergingHyperoptimizer(type(merger), pretrained, config,
+                                             model_config=model_config,
+                                             state_file=state_file,
+                                             fisher_cache_dir=fisher_cache_dir)
             result = hyperopt.search(task_vectors, val_loaders, heads,
                                      dataset_configs_map, device=device)
-            # Re-merge with best params
+            # Re-merge with best params (Fisher also needs val data + cache)
             best_config = hyperopt._apply_params(result["best_params"])
             merger = build_merger(pretrained, best_config)
-            merged_state_dict = merger.merge(task_vectors, **result["best_params"])
+            extra_kwargs = {}
+            if method == "fisher":
+                extra_kwargs = {
+                    "val_loaders": val_loaders,
+                    "heads": heads,
+                    "dataset_configs": dataset_configs_map,
+                    "model_config": model_config,
+                    "fisher_cache_dir": str(fisher_cache_dir),
+                }
+            merged_state_dict = merger.merge(task_vectors, **result["best_params"], **extra_kwargs)
             logger.info(f"Hyperopt best: {result['best_params']} -> {result['best_score']:.4f}")
         else:
             logger.warning("Hyperopt skipped: missing val loaders or heads")
@@ -232,13 +256,23 @@ def run_full_benchmark(
 ) -> None:
     """Orchestrate train-all -> merge-all -> eval-all -> report."""
     from med_merge.config.loader import load_config
+    from med_merge.evaluation.forgetting import compute_forgetting
+    from med_merge.utils.io import save_json
+
+    import json
+
+    oracle_dir = Path(output_dir) / "oracle"
+    oracle_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Train all datasets
+    oracle_results: dict[str, dict[str, float]] = {}
     for ds in ALL_DATASETS:
         logger.info(f"{'=' * 60}\nTraining on {ds}\n{'=' * 60}")
         ds_config = _load_dataset_config(ds, data_dir)
         experiment = ExperimentConfig(dataset=ds_config, device=device)
-        run_training(experiment, output_dir=output_dir)
+        metrics = run_training(experiment, output_dir=output_dir)
+        oracle_results[ds] = dict(metrics or {})
+        save_json(oracle_results[ds], oracle_dir / f"{ds}.json")
 
     # 2. Merge with all methods
     for method in ALL_METHODS:
@@ -266,5 +300,23 @@ def run_full_benchmark(
                 output_dir=f"{output_dir}/results/{method}",
                 device=device,
             )
+
+    if not oracle_results:
+        for ds in ALL_DATASETS:
+            p = oracle_dir / f"{ds}.json"
+            if p.exists():
+                oracle_results[ds] = json.loads(p.read_text())
+
+    forgetting_dir = Path(output_dir) / "forgetting"
+    forgetting_dir.mkdir(parents=True, exist_ok=True)
+    for method in ALL_METHODS:
+        results_path = Path(output_dir) / "results" / method / "results.json"
+        if not results_path.exists():
+            continue
+        merged_results = json.loads(results_path.read_text())
+        forgetting = compute_forgetting(merged_results, oracle_results)
+        save_json(forgetting, forgetting_dir / f"{method}.json")
+        if "mean_forgetting" in forgetting:
+            logger.info(f"  {method} mean forgetting: {forgetting['mean_forgetting']:.4f}")
 
     logger.info("Benchmark complete!")

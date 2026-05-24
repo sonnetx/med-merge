@@ -53,7 +53,21 @@ class SplitManager:
         meta_path = split_dir / "metadata.json"
 
         if meta_path.exists():
-            return self._load(split_dir)
+            splits = self._load(split_dir)
+            # Validate: cached split's max index must be in-bounds for current n_samples.
+            # If not, the underlying data changed (files added / removed) and we
+            # regenerate to avoid IndexError or pointing at the wrong rows.
+            max_idx = max(
+                (int(s.max()) if len(s) else -1) for s in splits.values()
+            )
+            if max_idx < n_samples:
+                return splits
+            logger.warning(
+                f"[{self.dataset_name}] Cached split max index={max_idx} >= "
+                f"current n_samples={n_samples}. Regenerating split."
+            )
+            import shutil
+            shutil.rmtree(split_dir)
 
         if group_keys is not None:
             splits = self._split_by_groups(n_samples, group_keys, seed, ratios)
