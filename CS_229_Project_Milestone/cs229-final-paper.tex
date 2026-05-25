@@ -34,7 +34,7 @@
 \maketitle
 
 \begin{abstract}
-Weight-space model merging promises a single deployable model from multiple fine-tuned specialists, but it is unclear how reliably it works for medical imaging, where tasks span nearly disjoint visual domains (radiology, dermoscopy, histopathology, colon pathology, fundus), or what predicts merge success. We run a controlled study across 7 ViT backbones, 6 medical imaging datasets, 8 merging methods, and 3 seeds, evaluated against an oracle-router upper bound and a multi-task joint-training (MTL) baseline. Three findings. (i) Dataset identity is the dominant cross-backbone predictor of merge forgetting. Dataset+method indicators alone explain LOBO median $R^2 = 0.79$ (Spearman $\rho = 0.78$) across seeds, with per-dataset mean forgetting spanning $0.05$ (radiology) to $0.70$--$0.85$ (PathMNIST) at the extremes. (ii) Task-vector cosine similarity contributes essentially zero predictive lift on top of these indicators, with median $\Delta R^2 = -0.002$ across seeds and per-seed permutation tests showing small lifts that flip sign between seeds, so cosine geometry does not behave as a generalizable cross-backbone predictor. (iii) The best merge ties or beats the specialist on three of six datasets, fails catastrophically on PathMNIST (37-point loss vs.\ a near-saturated specialist), and falls roughly 27 points short on RetinaMNIST and 9 points short on TCGA. On the original four datasets where we have an MTL baseline, MTL is competitive throughout. Practically, forecasting merge forgetting from task-vector geometry is harder than dataset-level inspection of where forgetting clusters. The dataset is the signal.
+Weight-space model merging promises a single deployable model from multiple fine-tuned specialists, but it is unclear how reliably it works for medical imaging, where tasks span nearly disjoint visual domains (radiology, dermoscopy, histopathology, colon pathology, fundus), or what predicts merge success. We run a controlled study across 7 ViT backbones, 6 medical imaging datasets, 8 merging methods, and 3 seeds, evaluated against an oracle-router upper bound and a multi-task joint-training (MTL) baseline. Three findings. (i) Dataset identity is the dominant cross-backbone predictor of merge forgetting. Dataset+method indicators alone explain LOBO median $R^2 = 0.79$ (Spearman $\rho = 0.78$) across seeds, with per-dataset mean forgetting spanning $0.06$ (radiology) to $0.71$ (PathMNIST) at the extremes. (ii) Task-vector cosine similarity contributes essentially zero predictive lift on top of these indicators, with median $\Delta R^2 = -0.002$ across seeds and per-seed permutation tests showing small lifts that flip sign between seeds, so cosine geometry does not behave as a generalizable cross-backbone predictor. (iii) The best merge ties or beats the specialist on three of six datasets, fails catastrophically on PathMNIST (37-point loss vs.\ a near-saturated specialist), and falls roughly 27 points short on RetinaMNIST and 9 points short on TCGA. On the original four datasets where we have an MTL baseline, MTL is competitive throughout. Practically, forecasting merge forgetting from task-vector geometry is harder than dataset-level inspection of where forgetting clusters. The dataset is the signal.
 \end{abstract}
 
 \section{Introduction and Motivation}
@@ -111,7 +111,7 @@ Aggregated across the 42 (backbone, dataset) cells and all three seeds, $1{-}\co
 \subsection{Geometry of the dataset effect}
 \label{sec:isic-vs-tcga}
 
-Per-dataset mean forgetting (averaged across backbones, methods, and seeds) clusters strongly by dataset, ranging from $\approx 0.06$ on the radiology cluster up to $\approx 0.75$ on PathMNIST (full table in Appendix~B). PathMNIST is uniquely catastrophic across all seven backbones. The full 42 (backbone, dataset) scatter (Figure~\ref{fig:norm_vs_cos}) shows the dataset-level pattern but no clean $\|\tau\|$ or cosine separation, because backbones with larger task vectors also tend to produce more-aligned ones, so neither $\|\tau\|$ nor $1{-}\cos$ in isolation yields a strong rank correlation with forgetting at the 42-cell grid level.
+Per-dataset mean forgetting (averaged across backbones, methods, and seeds) clusters strongly by dataset, ranging from $\approx 0.06$ on the radiology cluster up to $\approx 0.71$ on PathMNIST (full table in Appendix~B). PathMNIST is uniquely catastrophic across all seven backbones. The full 42 (backbone, dataset) scatter (Figure~\ref{fig:norm_vs_cos}) shows the dataset-level pattern but no clean $\|\tau\|$ or cosine separation, because backbones with larger task vectors also tend to produce more-aligned ones, so neither $\|\tau\|$ nor $1{-}\cos$ in isolation yields a strong rank correlation with forgetting at the 42-cell grid level.
 
 \begin{figure}[h]
 \centering
@@ -122,7 +122,7 @@ Per-dataset mean forgetting (averaged across backbones, methods, and seeds) clus
 
 \section{Discussion}
 
-Three practitioner takeaways. \textbf{(i) Same-domain tasks merge trivially.} On the radiology cluster (CheXpert + NIH), simple averaging or DARE-TIES achieves forgetting $\approx 0.05$ across all backbones, so method choice barely matters and hyperopt is wasted. \textbf{(ii) Cross-domain tasks are dataset-dominated.} Forgetting tracks the dataset, not the method or backbone. On the original 4 datasets where MTL was run, MTL is competitive with the best merge throughout, and we did not re-run MTL on PathMNIST or RetinaMNIST, where merging itself collapses (mean forgetting $\approx 0.75$ on PathMNIST, $\approx 0.27$ on RetinaMNIST). When joint training is feasible, MTL is the safer default. \textbf{(iii) Cosine geometry is a within-fleet sanity check only.} Aggregated Spearman $\rho \approx 0.50$ across the 42 (backbone, dataset) cells, but no consistent cross-backbone $R^2$ contribution under honest LOBO (median $\Delta R^2 = -0.002$, with permutation tests indicating small lifts inconsistent in sign across seeds). We also report a screening ablation in which replacing low-cosine cells with an MTL or oracle fallback achieves mean primary metric $\approx 0.77$ vs full-merge $0.76$ (Appendix~B), so cosine is useful for compute triage when MTL is unavailable but is not itself a forecast of merge success on a new architecture.
+Three practitioner takeaways. \textbf{(i) Same-domain tasks merge trivially.} On the radiology cluster (CheXpert + NIH), simple averaging or DARE-TIES achieves forgetting $\approx 0.05$ across all backbones, so method choice barely matters and hyperopt is wasted. \textbf{(ii) Cross-domain tasks are dataset-dominated.} Forgetting tracks the dataset, not the method or backbone. On the original 4 datasets where MTL was run, MTL is competitive with the best merge throughout, and we did not re-run MTL on PathMNIST or RetinaMNIST, where merging itself collapses (mean forgetting $\approx 0.71$ on PathMNIST and $\approx 0.25$ on RetinaMNIST). When joint training is feasible, MTL is the safer default. \textbf{(iii) Cosine geometry is a within-fleet sanity check only.} Aggregated Spearman $\rho \approx 0.50$ across the 42 (backbone, dataset) cells, but no consistent cross-backbone $R^2$ contribution under honest LOBO (median $\Delta R^2 = -0.002$, with permutation tests indicating small lifts inconsistent in sign across seeds). We also report a screening ablation in which the bottom-half-cosine cells fall back to the specialist oracle, achieving mean primary metric $0.74$ vs full-merge $0.62$ on the 42-cell grid (Appendix~B), so cosine is useful for compute triage even though it does not forecast merge success on a new architecture.
 
 \section{Limitations and Future Work}
 
@@ -173,16 +173,16 @@ Per-dataset mean forgetting in the primary metric, averaged across backbones, me
 Dataset (domain) & mean forgetting \\
 \midrule
 CheXpert (radiology)       & $0.06$ \\
-NIH ChestX-ray (radiology)    & $0.06$ \\
-TCGA (lung histopathology)    & $0.14$ \\
-ISIC 2017 (dermoscopy)      & $0.20$ \\
-RetinaMNIST (fundus)       & $0.27$ \\
-PathMNIST (colon histopathology) & $\mathbf{0.75}$ \\
+NIH ChestX-ray (radiology)    & $0.07$ \\
+TCGA (lung histopathology)    & $0.18$ \\
+ISIC 2017 (dermoscopy)      & $0.23$ \\
+RetinaMNIST (fundus)       & $0.25$ \\
+PathMNIST (colon histopathology) & $\mathbf{0.71}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\noindent\textbf{Cosine-screening ablation.} Threshold cosine at the per-cell median, and below threshold fall back to MTL (or oracle) instead of running the merge sweep. The achieved mean primary metric is $0.776$ with the MTL fallback (50\% compute saved) and $0.777$ with the oracle fallback (50\% compute saved), versus full-merge $0.764$. The mixed strategy mildly outperforms full merge by skipping the hardest cells.
+\noindent\textbf{Cosine-screening ablation.} On the full 42-cell (7 backbones $\times$ 6 datasets) grid, threshold cosine at the per-cell median and below threshold fall back to the specialist oracle instead of running the merge sweep. The achieved mean primary metric is $0.741$ with this 50\%-compute-saved policy, versus a full-merge baseline of $0.622$. The lift comes from routing the catastrophic PathMNIST and RetinaMNIST cells (which have the lowest task-vector cosines) to their specialists rather than accepting the merge collapse.
 
 \section{Fisher-wins-ISIC validation}
 
