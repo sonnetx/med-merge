@@ -5,10 +5,6 @@ A controlled benchmark for weight-space model merging on medical imaging vision 
 Pipeline: fine-tune backbone-per-dataset specialists, compute task vectors, merge, evaluate, analyze.
 
 
-## Grid
-
-7 backbones x 6 datasets x 8 merging methods x 3 seeds = 1008 cells.
-
 ### Backbones
 
 | Alias | HF id | Hidden | Pretraining |
