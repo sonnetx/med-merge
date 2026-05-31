@@ -228,3 +228,6 @@ logs/
 *.npz
 *.pt
 wandb/
+
+# Working notes (kept locally)
+RESULTS.md
