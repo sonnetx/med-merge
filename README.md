@@ -1,6 +1,6 @@
 # med-merge
 
-A controlled benchmark for weight-space model merging on medical imaging vision transformers. Companion code to a CS229 final paper studying what is predictable about merge forgetting under leave-one-backbone-out cross-validation.
+A controlled benchmark for weight-space model merging on medical imaging vision transformers. 
 
 Pipeline: fine-tune backbone-per-dataset specialists, compute task vectors, merge, evaluate, analyze.
 
@@ -25,8 +25,6 @@ Pipeline: fine-tune backbone-per-dataset specialists, compute task vectors, merg
 | `chexpert` | chest radiology | 5 | multilabel |
 | `tcga` | lung histopathology | 2 | binary |
 | `nih_cxr` | chest radiology | 5 | multilabel |
-| `pathmnist` | colon histopathology | 9 | multiclass |
-| `retinamnist` | fundus / DR | 5 | multiclass |
 
 ### Merging methods
 
