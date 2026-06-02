@@ -88,6 +88,7 @@ class TrainingConfig(BaseModel):
     finetune_strategy: Literal["full", "head_only"] = "full"
     use_balanced_sampler: bool = False
     use_class_weights: bool = False
+    mtl_sampling: Literal["round_robin", "inverse_frequency"] = "round_robin"
 
 
 # ---------------------------------------------------------------------------

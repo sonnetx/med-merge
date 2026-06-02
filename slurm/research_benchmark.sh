@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=medmerge_research
-#SBATCH --partition=roxanad
+#SBATCH --partition=gpu
 #SBATCH --time=48:00:00
 #SBATCH --mem=64G
 #SBATCH --cpus-per-task=8
@@ -9,23 +9,11 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 
-# ==========================================================================
-# med-merge Research Benchmark
-#
-# Full experimental grid for the paper:
-#   3 backbones x 3 datasets x 3 seeds x 9 merge methods
-#
-# Answers all three research questions:
-#   RQ1: Can merging preserve performance across medical domains?
-#   RQ2: How does merge quality vary with lambda/sparsity? (hyperopt)
-#   RQ3: Does the base model matter? (multi-backbone)
-#
 # Usage:
 #   sbatch slurm/research_benchmark.sh                         # full run
 #   sbatch --export=ALL,BACKBONES=clip slurm/research_benchmark.sh  # single backbone
 #   sbatch --export=ALL,SEEDS="42" slurm/research_benchmark.sh     # single seed
 #   sbatch --export=ALL,SKIP_TRAIN=1 slurm/research_benchmark.sh   # merge+eval only
-# ==========================================================================
 
 set -euo pipefail
 
@@ -77,12 +65,18 @@ DEVICE="cuda"
 
 # Backbone short names -> HuggingFace model IDs
 # Override with e.g. BACKBONES="clip vit"
-BACKBONES="${BACKBONES:-clip vit dinov3}"
+BACKBONES="${BACKBONES:-clip vit dinov3 rad_dino}"
 
 declare -A BACKBONE_IDS
 BACKBONE_IDS[clip]="openai/clip-vit-base-patch16"
 BACKBONE_IDS[vit]="google/vit-base-patch16-224"
 BACKBONE_IDS[dinov3]="facebook/dinov3-vits16-pretrain-lvd1689m"
+BACKBONE_IDS[rad_dino]="microsoft/rad-dino"
+# Phase B additions (workshop-version backbone zoo)
+BACKBONE_IDS[dinov2]="facebook/dinov2-base"
+BACKBONE_IDS[mae]="facebook/vit-mae-base"
+BACKBONE_IDS[beit]="microsoft/beit-base-patch16-224-pt22k-ft22k"
+BACKBONE_IDS[medclip]="flaviagiammarino/medclip-vit"
 
 # Methods to run (skip slerp by default — needs exactly 2 tasks)
 METHODS="simple_avg task_arithmetic ties dare dare_ties pcb_merging lines fisher"

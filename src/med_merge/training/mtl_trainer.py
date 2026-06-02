@@ -113,26 +113,55 @@ class MTLTrainer:
         self.use_amp = training_config.mixed_precision
 
     def _round_robin_batches(self):
-        """Yield (dataset_name, images, labels) by interleaving the loaders.
+        """Yield (dataset_name, batch) under one of two sampling strategies.
 
-        Uses ``itertools.zip_longest`` to cycle smaller loaders until the
-        largest one is exhausted (so the bigger datasets see one full pass
-        per epoch and smaller ones are repeated).
+        ``round_robin``: interleave the loaders, cycling smaller ones until the
+        largest is exhausted. Every dataset gets the same step count per epoch,
+        which under-serves smaller datasets in terms of unique-sample coverage.
+
+        ``inverse_frequency``: draw the next dataset stochastically with weight
+        proportional to 1 / dataset_size. Smaller datasets are oversampled per
+        step but see fewer cycle-repeats of the same samples, which evens out
+        the gradient contribution across heterogeneous dataset sizes. Total
+        step count per epoch is matched to ``round_robin`` for a fair compute
+        budget across strategies.
         """
+        import numpy as np
+
         names = list(self.data_modules.keys())
         iters = {n: iter(self.data_modules[n].train_loader) for n in names}
-
-        # Use the longest loader as the epoch length
         max_len = max(len(self.data_modules[n].train_loader) for n in names)
+        steps_per_epoch = max_len * len(names)
 
-        for step in range(max_len):
-            for n in names:
+        strategy = getattr(self.training_config, "mtl_sampling", "round_robin")
+
+        if strategy == "round_robin":
+            for _ in range(max_len):
+                for n in names:
+                    try:
+                        batch = next(iters[n])
+                    except StopIteration:
+                        iters[n] = iter(self.data_modules[n].train_loader)
+                        batch = next(iters[n])
+                    yield n, batch
+            return
+
+        if strategy == "inverse_frequency":
+            sizes = {n: len(self.data_modules[n].train_loader.dataset) for n in names}
+            inv = np.array([1.0 / sizes[n] for n in names], dtype=float)
+            weights = inv / inv.sum()
+            rng = np.random.default_rng(self.training_config.seed)
+            for _ in range(steps_per_epoch):
+                n = names[int(rng.choice(len(names), p=weights))]
                 try:
                     batch = next(iters[n])
                 except StopIteration:
                     iters[n] = iter(self.data_modules[n].train_loader)
                     batch = next(iters[n])
                 yield n, batch
+            return
+
+        raise ValueError(f"Unknown mtl_sampling strategy: {strategy!r}")
 
     def train(self) -> dict[str, float]:
         """Run the MTL training loop. Returns best aggregate val metrics."""

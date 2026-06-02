@@ -155,10 +155,12 @@ def train(
 @click.option("--lr", type=float, default=None)
 @click.option("--seed", type=int, default=42)
 @click.option("--device", type=str, default="cuda")
+@click.option("--sampling", type=click.Choice(["round_robin", "inverse_frequency"]),
+              default="round_robin", help="MTL batch-sampling strategy across datasets")
 @click.option("--wandb-mode", type=click.Choice(["online", "offline", "disabled"]),
               default="disabled")
 def train_mtl(datasets, backbone, output_dir, epochs, batch_size, lr, seed,
-              device, wandb_mode):
+              device, sampling, wandb_mode):
     """Multi-task joint-training baseline: one encoder + per-dataset heads."""
     import logging as _logging
 
@@ -192,6 +194,7 @@ def train_mtl(datasets, backbone, output_dir, epochs, batch_size, lr, seed,
     if epochs is not None: tr_config.epochs = epochs
     if batch_size is not None: tr_config.batch_size = batch_size
     if lr is not None: tr_config.learning_rate = lr
+    tr_config.mtl_sampling = sampling
 
     model_config = ModelConfig()
     if backbone is not None:

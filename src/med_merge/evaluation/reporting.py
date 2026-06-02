@@ -5,11 +5,54 @@ from __future__ import annotations
 import csv
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import numpy as np
 
+if TYPE_CHECKING:
+    from med_merge.merging.task_vector import TaskVector
+
 logger = logging.getLogger(__name__)
+
+
+def generate_task_vector_similarity_table(
+    task_vectors: dict[str, "TaskVector"],
+    output_dir: Path,
+) -> str:
+    """Write a pairwise task-vector cosine similarity matrix as CSV.
+
+    Reuses ``compute_pairwise_interference`` from ``analysis.conflict``;
+    this function only formats and persists the output.
+
+    Returns the CSV string.
+    """
+    from med_merge.analysis.conflict import compute_pairwise_interference
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    pairwise = compute_pairwise_interference(task_vectors)
+    names = list(task_vectors.keys())
+
+    rows = [[""] + names]
+    for a in names:
+        row = [a]
+        for b in names:
+            if a == b:
+                row.append("1.0000")
+                continue
+            key = (a, b) if (a, b) in pairwise else (b, a)
+            cos = pairwise[key]["cosine"]
+            row.append(f"{cos:.4f}")
+        rows.append(row)
+
+    csv_path = output_dir / "task_vector_cosine.csv"
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(rows)
+
+    logger.info(f"Task vector cosine similarity saved to {csv_path}")
+    return "\n".join(",".join(r) for r in rows)
 
 
 def generate_main_table(
