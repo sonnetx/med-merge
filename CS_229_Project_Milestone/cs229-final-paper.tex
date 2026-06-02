@@ -53,7 +53,7 @@ We fine-tune 7 pretrained ViT backbones (CLIP ViT-B/16, ViT-B/16, DINOv3 ViT-S/1
 
 We merge task vectors $\tau_i = \theta_{\text{ft},i} - \theta_{\text{pre}}$ across 8 methods (Simple Averaging, Task Arithmetic \cite{ilharco2023editing}, TIES \cite{yadav2023ties}, DARE \cite{yu2024language}, DARE-TIES, PCB-Merging \cite{du2024parametercompetitionbalancingmodel}, LiNeS \cite{wang2025linesposttraininglayerscaling}, and Fisher-Weighted Merging \cite{matena2022mergingmodelsfisherweightedaveraging}), each with a per-method validation-set grid search. Task vectors are computed over the shared ViT encoder parameters. The classification heads remain task-specific (3-class softmax for ISIC, 5-label multilabel for CheXpert and NIH, binary sigmoid for TCGA). At inference, a sample from dataset $d$ is processed by the merged encoder followed by specialist $d$'s head. We compare against two baselines, an oracle router (per-sample routing to the dataset specialist, the upper bound on any merged model) and multi-task joint training (MTL).
 
-We define per-cell merge forgetting $\Delta_d = \text{oracle}_d - \text{merged}_d$ in each dataset's primary metric (balanced accuracy on ISIC, macro-AUROC on CheXpert and NIH, AUROC on TCGA). For the cross-architecture predictor analysis in \S\ref{sec:predictability}, we use leave-one-backbone-out (LOBO) cross-validation, which holds out an entire backbone and evaluates the predictor on it. This matches the regime a practitioner faces when planning a merge on a new architecture.
+We define per-cell merge forgetting $\Delta_d = \text{oracle}_d - \text{merged}_d$ in each dataset's primary metric (balanced accuracy on ISIC, macro-AUROC on CheXpert and NIH, AUROC on TCGA). For the cross-architecture predictor analysis in Appendix~\ref{sec:predictability}, we use leave-one-backbone-out (LOBO) cross-validation, which holds out an entire backbone and evaluates the predictor on it. This matches the regime that arises when planning a merge on a backbone the predictor was not trained on.
 
 \section{Experiments and Results}
 
@@ -107,7 +107,7 @@ Taking the average of the three seeds, we see that on the radiology cluster (Che
 \subsection{No merging method dominates}
 \label{sec:method-ranking}
 
-Within each dataset, the best-performing merging method varies. Fisher-weighted merging wins ISIC, DARE-TIES wins both radiology datasets (CheXpert and NIH), and PCB-Merging wins lung histopathology (TCGA). 
+Within each dataset, the best-performing merging method varies. Fisher-weighted merging wins ISIC, DARE-TIES wins both radiology datasets (CheXpert and NIH), and PCB-Merging wins lung histopathology (TCGA). Two of these outcomes reflect numerical quirks of Fisher-weighted merging rather than properties of the underlying tasks: ISIC's small validation set produces a Fisher magnitude $120$--$1000\times$ larger than the radiology datasets', so the weighted average is biased toward ISIC-aligned features, and TCGA's binary log-likelihood produces a near-zero Fisher diagonal at the model's confident predictions, so the Fisher merge on TCGA effectively reduces to the Fisher-weighted average of the non-TCGA task vectors. Appendix~C verifies both effects directly and discusses how each should be normalized away in a fairer implementation.
 
 % \begin{figure}[h]
 % \centering
@@ -161,6 +161,7 @@ BEiT     & 0.746 & 0.795 & 0.644 & 0.868 \\
 The four datasets sit in a relatively narrow specialist-accuracy band ($0.64$--$0.87$), so absolute forgetting in \S\ref{sec:dataset-clusters} maps cleanly to relative loss without the interpretation hazards that arise when specialists themselves are weak. RAD-DINO leads on the two radiology datasets, as expected from its in-domain pretraining; the natural-image backbones are within 1--2 points on CheXpert and NIH.
 
 \section{LOBO predictor details and screening ablation}
+\label{sec:predictability}
 
 Per-seed LOBO regression results for the cosine + dataset/method-dummies predictor of merge forgetting on the 4-dataset, 7-backbone grid. The columns report the dummies-only $R^2$, the +cosine $R^2$, their difference, the corresponding difference in Spearman $\rho$, and the two-sided $p$-value from a $1000$-permutation test on the cosine column.
 
@@ -179,10 +180,10 @@ median & $\mathbf{0.36}$ & $0.34$ & $\mathbf{-0.014}$ & $-0.002$ & --- \\
 \end{tabular}
 \end{center}
 
-\noindent\textbf{Cosine-screening ablation.} On the 28-cell best-merge grid (7 backbones $\times$ 4 datasets, seed-averaged), threshold cosine at the per-cell median and below threshold fall back to the specialist oracle instead of running the merge sweep. The achieved mean primary metric is $0.78$ with this 50\%-compute-saved policy, versus a full-merge baseline of $0.76$. The lift is small in absolute terms because no cell in the 4-dataset regime collapses to near-chance, but the policy is essentially free.
+\noindent\textbf{Cosine-screening ablation.} On the 28-cell best-merge grid (7 backbones $\times$ 4 datasets, seed-averaged), threshold cosine at the per-cell median and below threshold fall back to the specialist oracle instead of running the merge sweep. The achieved mean primary metric is $0.78$ with this 50\%-compute-saved policy, versus a full-merge baseline of $0.76$. The two-point lift is modest because no cell in the 4-dataset regime collapses to near-chance, but it comes without any additional training cost beyond computing the cosine matrix, and the procedure should scale more dramatically on grids that include catastrophic-failure cells such as PathMNIST.
 
-\section{Fisher-wins-ISIC validation}
+\section{Fisher-weighted merging: numerical artifacts on ISIC and TCGA}
 
-Fisher matrices computed on small validation sets have large magnitude, so Fisher-weighted merging concentrates on the dataset with the smallest validation set. We verify directly. ISIC's per-dataset Fisher magnitude (sum of $|F_d|$ over parameters) is between $\mathbf{120\times}$ (RAD-DINO) and $\mathbf{1000\times}$ (DINOv3) larger than the radiology datasets'. Practitioners should normalize Fisher matrices by validation-set size before merging in heterogeneous-data regimes. (Note that the Fisher diagonal computed for TCGA is exactly zero in our cache, a binary-classification edge case, so the Fisher merge on TCGA behaves as the Fisher-weighted average of the non-TCGA task vectors only.)
+Fisher matrices estimated on small validation sets carry disproportionately large magnitude relative to those estimated on large validation sets, so a Fisher-weighted average across heterogeneous datasets concentrates on whichever dataset has the smallest validation set. Measuring this directly across our grid, ISIC's per-dataset Fisher magnitude (sum of $|F_d|$ over parameters) is between $\mathbf{120\times}$ (RAD-DINO) and $\mathbf{1000\times}$ (DINOv3) larger than the radiology datasets' on every backbone, which is more than enough to dominate the weighted sum even before any other consideration enters. The same Fisher estimator behaves degenerately on TCGA: in our cache the diagonal evaluates to exactly zero, because the gradients of the binary log-likelihood vanish at the model's confident predictions on the dominant class, so the Fisher merge on TCGA collapses to the Fisher-weighted average of the non-TCGA task vectors and effectively contributes nothing from TCGA itself. Both effects can be addressed by normalizing the diagonals by validation-set size before averaging, and the binary-classification case additionally requires a non-degenerate estimator such as a Laplace-style prior on the diagonal to avoid the divide-by-zero collapse.
 
 \end{document}

@@ -17,6 +17,7 @@ dataset:
     - Edema
     - Pleural Effusion
 
-  # Sherlock paths (override via CLI --data-dir for other environments)
-  data_dir: /scratch/groups/roxanad/datasets/chexpert/combined_train_valid_chexpert_v1.0
-  csv_path: /scratch/groups/roxanad/datasets/chexpert/explore_chexpert/train_valid_combined.csv
+  # Sherlock paths (override via CLI --data-dir for other environments).
+  # OAK-resident because scratch is periodically wiped; csv_path falls back to
+  # data_dir/train_valid_combined.csv when unset.
+  data_dir: /oak/stanford/groups/roxanad/bikia/processed_chexpert/combined_train_valid_chexpert_v1.0
