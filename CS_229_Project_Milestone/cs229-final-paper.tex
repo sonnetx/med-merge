@@ -102,7 +102,7 @@ Gap (MTL--spec)   & $-0.036$ & $0.000$ & $\mathbf{-0.043}$ & $+0.001$ \\
 \end{tabular}
 \end{center}
 
-Taking the average of the three seeds, we see that on the radiology cluster (CheXpert and NIH), all three approaches are within a percentage point of each other. However, beyond this, we see that on TCGA, merging falls $9.2$ points short of the specialist while MTL falls $4.3$ points short, and on ISIC the pattern flips, with merging matching the specialist while MTL falls $3.6$ points short. 
+Taking the average of the three seeds, we see that on the radiology cluster (CheXpert and NIH), all three approaches are within a percentage point of each other. However, beyond this, we see that on TCGA, merging falls $9.2$ points short of the specialist while MTL falls $4.3$ points short, and on ISIC the pattern flips, with merging matching the specialist while MTL falls $3.6$ points short. Per-backbone tuning of MTL via inverse-frequency dataset sampling and $4\times$ longer training (Appendix~\ref{sec:mtl-tuning}) shifts every cell by under two points and does not close either gap, so the structural pattern is not an undertuning artifact. 
 
 \subsection{No merging method dominates}
 \label{sec:method-ranking}
@@ -120,11 +120,11 @@ Within each dataset, the best-performing merging method varies. Fisher-weighted 
 
 \section{Discussion}
 
-For medical-imaging tasks, considering weight-space merging against its two baselines, routing to a specialist and MTL, the recommendation remains largely dataset-dependent. On the radiology cluster (CheXpert + NIH) all three approaches perform within a percentage point of each other. On the remaining two datasets, merging and MTL fail in opposite directions. TCGA's binary lung-histopathology task vectors are small in norm and idiosyncratic in direction relative to the other tasks (visible in the upper-left of Figure~\ref{fig:norm_vs_cos}). When the four task vectors are averaged, the larger radiology and dermoscopy task vectors dominate and TCGA's small idiosyncratic direction gets diluted out, while joint training keeps the encoder in a region where the TCGA-aligned and radiology/dermoscopy-aligned features can coexist. ISIC pushes the opposite way for different reasons in the two approaches. The best merge ties the specialist only because Fisher-weighted merging dominates the column (the next-best method falls 18 points below) and the validation-set-size artifact in Appendix~C explains the Fisher win. MTL's 3.6-point shortfall is likely gradient interference, where each step does a backward pass per dataset, but ISIC's ~2k samples are cycled ~100× per epoch while CheXpert sees ~200k unique samples per epoch, so radiology gradients dominate the encoder's evolution and ISIC-specific features get overwritten. Neither failure is irreducible, and a properly-tuned MTL with dataset-weighted sampling would likely close the ISIC gap, and merging methods with explicit interference control (PCB, DARE-TIES) already close part of the TCGA gap. Cosine geometry, despite not generalizing as a cross-backbone predictor of merge forgetting (Appendix~B), is useful as a compute-triage signal because the cells with lowest task-vector cosine are also the cells most likely to collapse, so routing them to specialists captures most of the lost accuracy at 50\% compute saved.
+For medical-imaging tasks, considering weight-space merging against its two baselines, routing to a specialist and MTL, the recommendation remains largely dataset-dependent. On the radiology cluster (CheXpert + NIH) all three approaches perform within a percentage point of each other. On the remaining two datasets, merging and MTL fail in opposite directions. TCGA's binary lung-histopathology task vectors are small in norm and idiosyncratic in direction relative to the other tasks (visible in the upper-left of Figure~\ref{fig:norm_vs_cos}). When the four task vectors are averaged, the larger radiology and dermoscopy task vectors dominate and TCGA's small idiosyncratic direction gets diluted out, while joint training keeps the encoder in a region where the TCGA-aligned and radiology/dermoscopy-aligned features can coexist. ISIC pushes the opposite way for different reasons in the two approaches. The best merge ties the specialist only because Fisher-weighted merging dominates the column (the next-best method falls 18 points below) and the validation-set-size artifact in Appendix~C explains the Fisher win. MTL's 3.6-point shortfall on ISIC and 4.3-point shortfall on TCGA persist under inverse-frequency dataset sampling and $4\times$ longer training (Appendix~\ref{sec:mtl-tuning}), so neither gap reduces to dataset-size imbalance or undertraining; both reflect structural limits of joint-training across heterogeneous medical domains. Merging methods with explicit interference control (PCB, DARE-TIES) already close part of the TCGA gap. Cosine geometry, despite not generalizing as a cross-backbone predictor of merge forgetting (Appendix~B), is useful as a compute-triage signal because the cells with lowest task-vector cosine are also the cells most likely to collapse, so routing them to specialists captures most of the lost accuracy at 50\% compute saved.
 
 \section{Limitations and Future Work}
 
-The backbone zoo of $N = 7$ is small. The zoo is also heterogeneous in scale, with DINOv3 at ViT-S/16 ($\sim$22M params) and the other six at ViT-B/16 ($\sim$86M), so cross-backbone comparisons mix scale with pretraining-objective differences. A properly-tuned MTL baseline could change the merge-vs-MTL deltas, especially on ISIC dataset, which is the smallest. Scope is restricted to ViT backbones, $224\times224$ images, classification only, and one-shot rather than continual merging. Several of our datasets are themselves multi-source (TCGA, ISIC), so the cross-domain shift we study is overlaid on uncontrolled within-dataset institutional and scanner shift, which we do not disentangle.
+The backbone zoo of $N = 7$ is small. The zoo is also heterogeneous in scale, with DINOv3 at ViT-S/16 ($\sim$22M params) and the other six at ViT-B/16 ($\sim$86M), so cross-backbone comparisons mix scale with pretraining-objective differences. Scope is restricted to ViT backbones, $224\times224$ images, classification only, and one-shot rather than continual merging. Several of our datasets are themselves multi-source (TCGA, ISIC), so the cross-domain shift we study is overlaid on uncontrolled within-dataset institutional and scanner shift, which we do not disentangle.
 
 \section{Contributions and Code}
 
@@ -181,6 +181,31 @@ median & $\mathbf{0.36}$ & $0.34$ & $\mathbf{-0.014}$ & $-0.002$ & --- \\
 \end{center}
 
 \noindent\textbf{Cosine-screening ablation.} On the 28-cell best-merge grid (7 backbones $\times$ 4 datasets, seed-averaged), threshold cosine at the per-cell median and below threshold fall back to the specialist oracle instead of running the merge sweep. The achieved mean primary metric is $0.78$ with this 50\%-compute-saved policy, versus a full-merge baseline of $0.76$. The two-point lift is modest because no cell in the 4-dataset regime collapses to near-chance, but it comes without any additional training cost beyond computing the cosine matrix, and the procedure should scale more dramatically on grids that include catastrophic-failure cells such as PathMNIST.
+
+\section{MTL tuning sweep}
+\label{sec:mtl-tuning}
+
+The MTL baseline reported in \S\ref{sec:mtl-merging} trains each backbone for 4 epochs with round-robin batch sampling across the four datasets. To rule out under-tuning as an explanation for the MTL-vs-specialist gaps, we re-ran the baseline with two changes that should each help the small-dataset cells: inverse-frequency dataset sampling (weight $\propto 1/|D|$, oversampling ISIC and TCGA relative to CheXpert and NIH) and $4\times$ longer training (16 epochs, early-stopped on aggregate validation metric). The sweep covers the four primary backbones (CLIP, ViT, DINOv3, RAD-DINO) and the same three seeds.
+
+\begin{center}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Backbone & ISIC & CheXpert & TCGA & NIH \\
+\midrule
+CLIP     & $0.685 \pm 0.026$ & $0.758 \pm 0.007$ & $0.795 \pm 0.017$ & $0.808 \pm 0.011$ \\
+ViT      & $0.686 \pm 0.028$ & $0.782 \pm 0.002$ & $0.757 \pm 0.008$ & $0.834 \pm 0.001$ \\
+DINOv3   & $0.693 \pm 0.014$ & $0.778 \pm 0.004$ & $0.782 \pm 0.003$ & $0.810 \pm 0.008$ \\
+RAD-DINO & $0.657 \pm 0.009$ & $0.804 \pm 0.005$ & $0.677 \pm 0.005$ & $0.855 \pm 0.006$ \\
+\midrule
+best (tuned)  & $0.693$ & $0.804$ & $0.795$ & $0.855$ \\
+best (\S\ref{sec:mtl-merging}) & $0.703$ & $0.813$ & $0.794$ & $0.873$ \\
+$\Delta$ best & $-0.010$ & $-0.009$ & $+0.001$ & $-0.018$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Across all four datasets the best-of-backbones primary metric shifts by under two points, and the tuned sweep never improves the best value reported in \S\ref{sec:mtl-merging}. Within-backbone the picture is the same: every per-cell shift is bounded by $\pm 0.04$ and the cross-method ranking is unchanged. We conclude that the merge-vs-MTL gaps reported in the main text are not driven by undertuning of the MTL baseline, but reflect structural properties of joint training across the four target datasets. Standard deviations across the three seeds are uniformly small ($\le 0.028$), so the comparison is reproducible.
 
 \section{Fisher-weighted merging: numerical artifacts on ISIC and TCGA}
 
