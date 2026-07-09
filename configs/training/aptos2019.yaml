@@ -1,0 +1,5 @@
+training:
+  epochs: 30
+  batch_size: 16
+  learning_rate: 5.0e-6
+  early_stopping_patience: 7

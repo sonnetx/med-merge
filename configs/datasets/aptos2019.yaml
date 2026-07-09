@@ -1,0 +1,14 @@
+dataset:
+  name: aptos2019
+  source: kaggle/aptos2019-blindness-detection
+  num_classes: 5
+  task_type: ordinal
+  image_size: 224
+  class_names:
+    - No DR
+    - Mild
+    - Moderate
+    - Severe
+    - Proliferative DR
+  split_seed: 42
+  split_ratios: [0.8, 0.1, 0.1]

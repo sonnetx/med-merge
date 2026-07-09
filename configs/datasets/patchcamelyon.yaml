@@ -1,0 +1,11 @@
+dataset:
+  name: patchcamelyon
+  source: 1aurent/PatchCamelyon
+  num_classes: 1
+  task_type: binary
+  image_size: 224
+  class_names:
+    - negative
+    - positive
+  # Auto-downloaded from HuggingFace to HF_DATASETS_CACHE; data_dir is unused.
+  data_dir: /scratch/users/sonnet/pcam

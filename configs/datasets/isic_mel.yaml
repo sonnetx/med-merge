@@ -1,0 +1,14 @@
+dataset:
+  name: isic_mel
+  source: local
+  num_classes: 1
+  task_type: binary
+  image_size: 224
+  class_names:
+    - not_melanoma
+    - melanoma
+  split_seed: 42
+  split_ratios: [0.8, 0.1, 0.1]
+  # Reuses the re-staged ISIC-2017 data; the loader binarizes to melanoma-vs-rest.
+  data_dir: /scratch/groups/roxanad/datasets/isic/challenges/2017/merged_isic_2017_data/images
+  csv_path: /scratch/groups/roxanad/datasets/isic/challenges/2017/merged_isic_2017_data/merged_ground_truth_part3.csv

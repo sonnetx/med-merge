@@ -1,0 +1,12 @@
+dataset:
+  name: chexpert_pe
+  source: local
+  num_classes: 1
+  task_type: binary
+  image_size: 224
+  class_names:
+    - no_effusion
+    - Pleural Effusion
+  # Reuses CheXpert (persistent OAK); the loader reduces to the Pleural Effusion label.
+  data_dir: /oak/stanford/groups/roxanad/bikia/processed_chexpert/combined_train_valid_chexpert_v1.0
+  csv_path: /oak/stanford/groups/roxanad/bikia/processed_chexpert/explore_chexpert/train_valid_combined.csv

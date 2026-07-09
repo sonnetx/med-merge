@@ -40,6 +40,7 @@ def load_chexpert(
     split_seed: int = 42,
     split_ratios: tuple[float, ...] = (0.8, 0.1, 0.1),
     splits_dir: str = "./outputs/splits",
+    binary_label: str | None = None,
     **kwargs,
 ) -> ImageListDataset:
     """Load CheXpert with persistent splits via SplitManager.
@@ -67,7 +68,8 @@ def load_chexpert(
 
     # CheXpert encodes: 1=positive, 0=negative, -1=uncertain, NaN=missing
     # U-Ones policy: treat uncertain (-1) as positive (1)
-    labels = df[LABEL_COLUMNS].fillna(0.0).values.astype(np.float32)
+    cols = [binary_label] if binary_label is not None else LABEL_COLUMNS
+    labels = df[cols].fillna(0.0).values.astype(np.float32)
     labels[labels == -1.0] = 1.0
 
     mgr = SplitManager("chexpert", output_dir=splits_dir)
@@ -80,7 +82,20 @@ def load_chexpert(
     samples = []
     for idx in indices:
         idx = int(idx)
-        samples.append((img_dir / filenames[idx], labels[idx].tolist()))
+        if binary_label is not None:
+            samples.append((img_dir / filenames[idx], float(labels[idx][0])))
+        else:
+            samples.append((img_dir / filenames[idx], labels[idx].tolist()))
+
+    if binary_label is not None:
+        pos = sum(1 for _, l in samples if l == 1.0)
+        logger.info(f"CheXpert {split} (binary {binary_label}): {len(samples)} images, pos={pos}")
+        return ImageListDataset(
+            samples, transform,
+            dataset_name="chexpert_bin",
+            dataset_task_type="binary", dataset_num_classes=1,
+            dataset_class_names=[f"no_{binary_label}", binary_label],
+        )
 
     logger.info(f"CheXpert {split}: {len(samples)} images")
 
@@ -92,6 +107,12 @@ def load_chexpert(
         dataset_num_classes=5,
         dataset_class_names=LABEL_COLUMNS,
     )
+
+
+def load_chexpert_pe(data_dir: str, split: str = "train", transform=None, **kwargs):
+    """CheXpert as binary Pleural Effusion detection."""
+    kwargs.pop("binary_label", None)
+    return load_chexpert(data_dir, split, transform, binary_label="Pleural Effusion", **kwargs)
 
 
 # Backward-compatible alias

@@ -53,24 +53,29 @@ class SplitManager:
         meta_path = split_dir / "metadata.json"
 
         if meta_path.exists():
-            splits = self._load(split_dir)
-            # Validate: cached split's max index must be in-bounds for current n_samples.
-            # If not, the underlying data changed (files added / removed) and we
-            # regenerate to avoid IndexError or pointing at the wrong rows.
-            max_idx = max(
-                (int(s.max()) if len(s) else -1) for s in splits.values()
-            )
-            if max_idx < n_samples:
-                return splits
+            # Validate cached n_samples matches current. A `max_idx < n_samples`
+            # check is not enough: if the dataset grew, old indices stay in-range
+            # but no longer correspond to the same rows. TCGA hit exactly this:
+            # 797 cached indices ended up entirely in the LUAD region of a
+            # later 3220-row table, collapsing val to one class.
+            try:
+                cached_meta = json.loads(meta_path.read_text())
+                cached_n = int(cached_meta.get("n_samples", -1))
+            except Exception:
+                cached_n = -1
+            if cached_n == n_samples:
+                return self._load(split_dir)
             logger.warning(
-                f"[{self.dataset_name}] Cached split max index={max_idx} >= "
-                f"current n_samples={n_samples}. Regenerating split."
+                f"[{self.dataset_name}] Cached split n_samples={cached_n} "
+                f"!= current {n_samples}. Regenerating split."
             )
             import shutil
             shutil.rmtree(split_dir)
 
         if group_keys is not None:
             splits = self._split_by_groups(n_samples, group_keys, seed, ratios)
+        elif stratify_labels is not None:
+            splits = self._stratified_split(n_samples, stratify_labels, seed, ratios)
         else:
             splits = self._simple_split(n_samples, seed, ratios)
 
@@ -90,6 +95,38 @@ class SplitManager:
             "train": indices[:train_end],
             "validation": indices[train_end:val_end],
             "test": indices[val_end:],
+        }
+
+    def _stratified_split(
+        self,
+        n: int,
+        labels: np.ndarray,
+        seed: int,
+        ratios: tuple[float, ...],
+    ) -> dict[str, np.ndarray]:
+        """Per-class shuffle + ratio cut. Each class is split independently
+        into train/val/test slices, then concatenated. Guarantees both val
+        and test contain every class with at least floor(class_count * ratio)
+        samples.
+        """
+        rng = np.random.RandomState(seed)
+        labels = np.asarray(labels)
+        train_idx: list[int] = []
+        val_idx: list[int] = []
+        test_idx: list[int] = []
+        for cls in np.unique(labels):
+            cls_idx = np.where(labels == cls)[0]
+            rng.shuffle(cls_idx)
+            nc = len(cls_idx)
+            tr_end = int(nc * ratios[0])
+            va_end = tr_end + int(nc * ratios[1])
+            train_idx.extend(cls_idx[:tr_end].tolist())
+            val_idx.extend(cls_idx[tr_end:va_end].tolist())
+            test_idx.extend(cls_idx[va_end:].tolist())
+        return {
+            "train": np.array(train_idx),
+            "validation": np.array(val_idx),
+            "test": np.array(test_idx),
         }
 
     def _split_by_groups(

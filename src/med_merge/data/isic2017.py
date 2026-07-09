@@ -42,6 +42,7 @@ def load_isic2017(
     split_seed: int = 42,
     split_ratios: tuple[float, ...] = (0.8, 0.1, 0.1),
     splits_dir: str = "./outputs/splits",
+    binary_positive: Optional[str] = None,
     **kwargs,
 ) -> ImageListDataset:
     """Load ISIC 2017 with persistent splits via SplitManager.
@@ -101,6 +102,11 @@ def load_isic2017(
 
     indices = splits.get(split, splits["train"])
 
+    # Optional binarization: 1 if class == binary_positive else 0 (e.g. melanoma detection).
+    if binary_positive is not None:
+        pos_idx = CLASS_NAMES.index(binary_positive)
+        labels = [1 if l == pos_idx else 0 for l in labels]
+
     # Build samples: (image_path, label)
     samples = []
     for idx in indices:
@@ -108,6 +114,16 @@ def load_isic2017(
         image_id = df.iloc[idx][image_id_column]
         img_path = img_dir / f"{image_id}{image_extension}"
         samples.append((img_path, labels[idx]))
+
+    if binary_positive is not None:
+        pos = sum(1 for _, l in samples if l == 1)
+        logger.info(f"ISIC {split} (binary {binary_positive}): {len(samples)} images, pos={pos}")
+        return ImageListDataset(
+            samples, transform,
+            dataset_name=f"isic_{binary_positive[:3]}",
+            dataset_task_type="binary", dataset_num_classes=1,
+            dataset_class_names=[f"not_{binary_positive}", binary_positive],
+        )
 
     logger.info(
         f"ISIC 2017 {split}: {len(samples)} images, "
@@ -124,3 +140,9 @@ def load_isic2017(
         dataset_num_classes=3,
         dataset_class_names=CLASS_NAMES,
     )
+
+
+def load_isic_mel(data_dir: str, split: str = "train", transform=None, **kwargs):
+    """ISIC-2017 as binary melanoma detection (melanoma vs rest)."""
+    kwargs.pop("binary_positive", None)
+    return load_isic2017(data_dir, split, transform, binary_positive="melanoma", **kwargs)

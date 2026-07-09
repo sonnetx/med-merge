@@ -15,6 +15,17 @@ _LOADER_REGISTRY: dict[str, tuple[str, str]] = {
     "nih_cxr": ("med_merge.data.nih_cxr", "load_nih_cxr"),
     "pathmnist": ("med_merge.data.medmnist_loader", "load_pathmnist"),
     "retinamnist": ("med_merge.data.medmnist_loader", "load_retinamnist"),
+    # Real full-resolution loaders pulled from the Sherlock working tree. The
+    # values are Dataset classes whose __init__(data_dir, split, transform, **kwargs)
+    # matches the loader-callable convention used by build_dataset().
+    "nct_crc": ("med_merge.data.nct_crc", "NCTCRCDataset"),
+    "patchcamelyon": ("med_merge.data.patchcamelyon", "PatchCamelyonDataset"),
+    # Binary controlled trio (one task type across three disjoint domains).
+    "isic_mel": ("med_merge.data.isic2017", "load_isic_mel"),
+    "chexpert_pe": ("med_merge.data.chexpert", "load_chexpert_pe"),
+    "aptos2019": ("med_merge.data.aptos2019", "APTOS2019Dataset"),
+    "ham10000": ("med_merge.data.ham10000", "HAM10000Dataset"),
+    "fitzpatrick17k": ("med_merge.data.fitzpatrick", "Fitzpatrick17kDataset"),
 }
 
 

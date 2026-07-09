@@ -270,6 +270,27 @@ class MergingHyperoptimizer:
         elif method == "fisher":
             return [{"alpha": a} for a in self.base_config.alpha_search]
 
+        elif method in ("iso_c", "tsv_merge", "iso_cts"):
+            return [{"alpha": a} for a in self.base_config.alpha_search]
+
+        elif method == "gram_ls":
+            return [
+                {"alpha": a, "gram_lambda": g}
+                for a, g in itertools.product(
+                    self.base_config.alpha_search,
+                    self.base_config.gram_lambda_search,
+                )
+            ]
+
+        elif method == "gram_ls_na":
+            return [
+                {"alpha": a, "gram_lambda": g}
+                for a, g in itertools.product(
+                    self.base_config.alpha_search,
+                    self.base_config.gram_lambda_search_na,
+                )
+            ]
+
         else:
             # No hyperparameters (simple_avg, pcb_merging)
             return [{}]

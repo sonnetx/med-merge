@@ -88,7 +88,7 @@ class TrainingConfig(BaseModel):
     finetune_strategy: Literal["full", "head_only"] = "full"
     use_balanced_sampler: bool = False
     use_class_weights: bool = False
-    mtl_sampling: Literal["round_robin", "inverse_frequency"] = "round_robin"
+    max_train_samples: Optional[int] = None  # cap train set (deterministic subsample) for size-matched studies
 
 
 # ---------------------------------------------------------------------------
@@ -130,6 +130,13 @@ class MergingConfig(BaseModel):
     # Fisher
     fisher_n_samples: int = 1000
     fisher_alpha: Optional[float] = None  # falls back to `alpha` if None
+
+    # Gram-LS (task-vector Gram-matrix least-squares / projection-preserving merge)
+    gram_lambda: float = 0.1  # relative Tikhonov regularization on the Gram system
+    gram_lambda_search: list[float] = [0.0, 0.05, 0.1, 0.3]
+    gram_norm_aware: bool = False
+    isocts_rank_fraction: float = 0.5  # ridge scaled by max task norm (damps weak tasks)
+    gram_lambda_search_na: list[float] = [0.1, 0.3, 1.0, 3.0]  # norm-aware needs larger ridge
 
     # Composite methods
     inner_method: Optional[str] = None  # for DARE, LiNeS

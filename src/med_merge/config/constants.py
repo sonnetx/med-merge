@@ -2,7 +2,19 @@
 
 from __future__ import annotations
 
-ALL_DATASETS = ["isic2017", "chexpert", "tcga", "nih_cxr", "pathmnist", "retinamnist"]
+# All trainable/mergeable dataset names (used for CLI validation).
+ALL_DATASETS = [
+    "isic2017", "chexpert", "pathmnist", "tcga", "nih_cxr", "retinamnist",
+    "isic_mel", "chexpert_pe", "patchcamelyon",
+]
+
+# Study cores.
+# MULTICLASS_CORE: three disjoint domains at native task type (derm 3-class,
+#   CXR 5-label multilabel, histo 9-class). Real-world / mixed-type comparison.
+MULTICLASS_CORE = ["isic2017", "chexpert", "pathmnist"]
+# BINARY_CORE (primary controlled study): one task type across the three domains,
+#   melanoma detection / pleural effusion / tumor detection. Same metric + head.
+BINARY_CORE = ["isic_mel", "chexpert_pe", "patchcamelyon"]
 
 ALL_METHODS = [
     "simple_avg",
@@ -14,6 +26,11 @@ ALL_METHODS = [
     "lines",
     "slerp",
     "fisher",
+    "iso_c",
+    "iso_cts",
+    "tsv_merge",
+    "gram_ls",
+    "gram_ls_na",
 ]
 
 SEEDS = [42, 123, 456]
@@ -26,6 +43,10 @@ PRIMARY_METRICS: dict[str, str] = {
     "nih_cxr": "macro_auroc",
     "pathmnist": "balanced_accuracy",
     "retinamnist": "balanced_accuracy",
+    # Binary controlled trio (one task type across three disjoint domains).
+    "isic_mel": "auroc",
+    "chexpert_pe": "auroc",
+    "patchcamelyon": "auroc",
 }
 
 # Dataset metadata: num_classes, task_type, class_names

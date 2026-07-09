@@ -1,0 +1,10 @@
+training:
+  epochs: 10
+  batch_size: 64
+  learning_rate: 5.0e-5
+  weight_decay: 0.01
+  warmup_fraction: 0.1
+  scheduler: cosine
+  optimizer: adamw
+  early_stopping_patience: 4
+  mixed_precision: true

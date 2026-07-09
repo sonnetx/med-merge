@@ -1,0 +1,17 @@
+dataset:
+  name: ham10000
+  source: marmal88/skin_cancer
+  num_classes: 7
+  task_type: multiclass
+  image_size: 224
+  class_names:
+    - akiec
+    - bcc
+    - bkl
+    - df
+    - mel
+    - nv
+    - vasc
+  split_seed: 42
+  split_ratios: [0.8, 0.1, 0.1]
+  group_by: lesion_id

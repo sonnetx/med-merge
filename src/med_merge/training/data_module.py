@@ -48,13 +48,21 @@ class DataModule:
             transform = get_aggressive_train_transform(self._image_size, self._norm_key)
         else:
             transform = get_train_transform(self._image_size, self._norm_key)
-        return build_dataset(
+        ds = build_dataset(
             self.dataset_config.name,
             self.dataset_config.data_dir,
             split="train",
             transform=transform,
             **self._loader_kwargs(),
         )
+        cap = self.training_config.max_train_samples
+        if cap is not None and len(ds) > cap:
+            import numpy as np
+            from torch.utils.data import Subset
+            rng = np.random.RandomState(self.training_config.seed)
+            idx = rng.permutation(len(ds))[:cap].tolist()
+            ds = Subset(ds, idx)
+        return ds
 
     @cached_property
     def val_dataset(self):
