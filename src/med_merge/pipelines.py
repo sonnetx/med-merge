@@ -98,16 +98,26 @@ def run_merge(
     pretrained = load_pretrained_encoder(model_config)
 
     task_vectors = {}
+    missing = []
     for ds in datasets:
         tv_path = Path(task_vector_dir) / ds / "task_vector.pt"
         if tv_path.exists():
             task_vectors[ds] = TaskVector.load(tv_path)
             logger.info(f"  Loaded task vector: {ds} (norm={task_vectors[ds].norm():.2f})")
         else:
-            logger.warning(f"  Task vector not found for {ds} at {tv_path}")
+            missing.append(f"{ds} ({tv_path})")
 
     if not task_vectors:
         raise FileNotFoundError("No task vectors found. Run training first.")
+
+    # Merging a strict subset of the requested tasks silently changes the experiment, so
+    # refuse rather than report an N-task merge that actually combined fewer.
+    if missing:
+        raise FileNotFoundError(
+            f"Missing task vectors for {len(missing)} of {len(datasets)} requested datasets: "
+            + "; ".join(missing)
+            + ". Train them first, or pass only the datasets you intend to merge."
+        )
 
     try:
         from med_merge.evaluation.reporting import generate_task_vector_similarity_table

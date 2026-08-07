@@ -1,0 +1,16 @@
+dataset:
+  name: pathmnist_bin
+  source: medmnist
+  num_classes: 1
+  task_type: binary
+  image_size: 224
+  class_names:
+    - not_TUM
+    - TUM
+  split_seed: 42
+  # MedMNIST has fixed splits; split_ratios are unused but kept for schema.
+  split_ratios: [0.8, 0.1, 0.1]
+
+  # Same PathMNIST images as the 9-class config; only the label structure differs
+  # (tumor vs rest), which is what makes the native-task ablation one-variable.
+  data_dir: /scratch/users/sonnet/medmnist

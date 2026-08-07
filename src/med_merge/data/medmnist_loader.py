@@ -55,13 +55,23 @@ class _MedMNISTLazyDataset(MedMergeDataset):
 
     """
 
-    def __init__(self, mm_ds, transform, meta: dict, name: str):
+    def __init__(self, mm_ds, transform, meta: dict, name: str,
+                 binary_positive: Optional[int] = None):
         self._mm = mm_ds
         self.transform = transform
         self._name = name
-        self._task_type = meta["task_type"]
-        self._num_classes = meta["num_classes"]
-        self._class_names = meta["class_names"]
+        # ``binary_positive`` recasts a multiclass subset as one-vs-rest detection on the
+        # *same* images, so only the label structure changes.
+        self._binary_positive = binary_positive
+        if binary_positive is not None:
+            self._task_type = "binary"
+            self._num_classes = 1
+            pos = meta["class_names"][binary_positive]
+            self._class_names = [f"not_{pos}", pos]
+        else:
+            self._task_type = meta["task_type"]
+            self._num_classes = meta["num_classes"]
+            self._class_names = meta["class_names"]
 
     def __len__(self) -> int:
         return len(self._mm)
@@ -78,6 +88,9 @@ class _MedMNISTLazyDataset(MedMergeDataset):
             label_val = int(label[0])
         else:
             label_val = label
+
+        if self._binary_positive is not None:
+            label_val = int(int(label_val) == self._binary_positive)
 
         if self._task_type == "multilabel":
             label_t = torch.tensor(label_val, dtype=torch.float)
@@ -100,10 +113,12 @@ class _MedMNISTLazyDataset(MedMergeDataset):
         return self._class_names
 
     def get_class_weights(self):
-        if self._task_type == "multilabel":
+        if self._task_type in ("multilabel", "binary"):
             return None
         from collections import Counter
         labels = [int(self._mm[i][1][0]) for i in range(len(self._mm))]
+        if self._binary_positive is not None:
+            labels = [int(v == self._binary_positive) for v in labels]
         counts = Counter(labels)
         total = len(labels)
         return torch.tensor(
@@ -119,6 +134,7 @@ def load_medmnist_subset(
     split: str = "train",
     transform=None,
     image_size: int = 224,
+    binary_positive: Optional[int] = None,
     **kwargs,
 ) -> MedMergeDataset:
     """Lazy MedMNIST loader. Returns the medmnist dataset wrapped to match
@@ -145,7 +161,8 @@ def load_medmnist_subset(
         root=str(root),
     )
     logger.info(f"MedMNIST {subset_name} {split}: {len(ds)} samples")
-    return _MedMNISTLazyDataset(ds, transform, meta, name=subset_name)
+    return _MedMNISTLazyDataset(ds, transform, meta, name=subset_name,
+                                binary_positive=binary_positive)
 
 
 # Thin per-subset wrappers so the registry can address them by name without
@@ -156,3 +173,14 @@ def load_pathmnist(data_dir: str, split: str = "train", transform=None, **kwargs
 
 def load_retinamnist(data_dir: str, split: str = "train", transform=None, **kwargs):
     return load_medmnist_subset("retinamnist", data_dir, split, transform, **kwargs)
+
+
+# PathMNIST recast as binary tumor detection (TUM vs rest) on identical images. Pairs with
+# ``pathmnist`` for the native-task ablation, where only the label structure differs.
+PATHMNIST_TUMOR_INDEX = MEDMNIST_SUBSETS["pathmnist"]["class_names"].index("TUM")
+
+
+def load_pathmnist_bin(data_dir: str, split: str = "train", transform=None, **kwargs):
+    kwargs.pop("binary_positive", None)
+    return load_medmnist_subset("pathmnist", data_dir, split, transform,
+                                binary_positive=PATHMNIST_TUMOR_INDEX, **kwargs)

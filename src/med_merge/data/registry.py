@@ -14,6 +14,7 @@ _LOADER_REGISTRY: dict[str, tuple[str, str]] = {
     "tcga": ("med_merge.data.tcga", "load_tcga"),
     "nih_cxr": ("med_merge.data.nih_cxr", "load_nih_cxr"),
     "pathmnist": ("med_merge.data.medmnist_loader", "load_pathmnist"),
+    "pathmnist_bin": ("med_merge.data.medmnist_loader", "load_pathmnist_bin"),
     "retinamnist": ("med_merge.data.medmnist_loader", "load_retinamnist"),
     # Real full-resolution loaders pulled from the Sherlock working tree. The
     # values are Dataset classes whose __init__(data_dir, split, transform, **kwargs)

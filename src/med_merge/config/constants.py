@@ -5,7 +5,7 @@ from __future__ import annotations
 # All trainable/mergeable dataset names (used for CLI validation).
 ALL_DATASETS = [
     "isic2017", "chexpert", "pathmnist", "tcga", "nih_cxr", "retinamnist",
-    "isic_mel", "chexpert_pe", "patchcamelyon",
+    "isic_mel", "chexpert_pe", "patchcamelyon", "pathmnist_bin",
 ]
 
 # Study cores.
@@ -47,6 +47,7 @@ PRIMARY_METRICS: dict[str, str] = {
     "isic_mel": "auroc",
     "chexpert_pe": "auroc",
     "patchcamelyon": "auroc",
+    "pathmnist_bin": "auroc",
 }
 
 # Dataset metadata: num_classes, task_type, class_names
