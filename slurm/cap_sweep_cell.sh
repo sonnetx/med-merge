@@ -2,7 +2,7 @@
 #SBATCH --partition=gpu,roxanad
 #SBATCH --gpus=1
 #SBATCH -C GPU_SKU:H100_SXM5
-#SBATCH --time=06:00:00
+#SBATCH --time=10:00:00
 #SBATCH --mem=48G
 #SBATCH --cpus-per-task=8
 #SBATCH --output=/home/groups/roxanad/sonnet/med-merge/logs/%x_%j.out
