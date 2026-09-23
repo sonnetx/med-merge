@@ -14,7 +14,7 @@ The primary study fixes task type, metric, head architecture, and training budge
 | `chexpert_pe` | chest radiography | pleural effusion detection | CheXpert |
 | `patchcamelyon` | histopathology | tumor detection | PatchCamelyon |
 
-Every task is binary, scored by AUROC through a single-logit head, and every specialist trains on a seed-deterministic subsample of 2,000 images. The six-task extension adds a second binary task per domain (`ham10000_mel`, `chexpert_cm`, `nct_crc_tum`), built with the one-vs-rest wrapper in `src/med_merge/data/binarize.py`.
+Every task is binary, scored by AUROC through a single-logit head, and every specialist trains on a seed-deterministic subsample of 2,000 images. The six-task extension adds a second binary task per domain (`ham10000_mel`, `chexpert_cm`, `pathmnist_bin`), built with the one-vs-rest wrapper in `src/med_merge/data/binarize.py`.
 
 ## Backbones
 
@@ -41,6 +41,26 @@ Routing to the correct specialist (the reference every merger is measured agains
 ## Other datasets
 
 The repository also carries loaders and configs for the earlier multiclass study (`isic2017`, `chexpert`, `tcga`, `nih_cxr`, `pathmnist`, `retinamnist`) and for the held-out transfer probes (`ham10000`, `retinamnist`).
+
+## Paper experiments
+
+Each analysis in the paper maps to a job under `slurm/` and a script under `scripts/`. The job scripts write to `outputs/<backbone>/seed_<seed>_cap2k/` and expect to be submitted from the repository root.
+
+| Paper section | Job | Script |
+|---|---|---|
+| Main benchmark (Table 1) | `bin2k_cell.sh`, `bin2k_isocts.sh` | `aggregate_binary.py` |
+| Specialist routing reference | `oracle_job.sh` | `compute_oracle_router.py` |
+| Widened scaling grid and LiNeS sensitivity | `alpha_rerun.sh` | `aggregate_binary.py` |
+| Validation-free tier (Table 3) | `tier_job.sh` | `tier_merge.py`, `tier_analysis.py` |
+| Held-out linear probes | `probe_job.sh`, `probe_ext.sh` | `heldout_probe.py` |
+| Six-task extension | `six_cell.sh`, `six_an_job.sh` | `six_analysis.py` |
+| Synthetic isotropization figure | none | `gram_ls_synthetic.py` |
+| Binary versus native ablation and conditioning | `abl_cell.sh`, `abl_final_job.sh`, `abl_corr_job.sh`, `gram_cond_job.sh` | `abl_final.py`, `abl_corr.py`, `gram_cond.py` |
+| Task-vector norms (appendix) | none | `norm_binary.py`, `norm_analysis.py` |
+
+The paper compares 11 methods. Fisher-weighted merging, SLERP, and the norm-aware Gram-LS variant are implemented here but excluded from the paper's tables. Fisher's binary-loss and Fisher-estimation implementation still needs correction and a rerun.
+
+The scripts and jobs listed above were restored from the anonymized paper supplement, so a few data paths in them read `/path/to/...` and the cluster credential-sourcing lines were removed. The other scripts in `scripts/` belong to an earlier multiclass study and are kept for reference.
 
 ## Running
 

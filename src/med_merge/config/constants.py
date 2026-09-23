@@ -21,7 +21,7 @@ BINARY_CORE = ["isic_mel", "chexpert_pe", "patchcamelyon"]
 BINARY_SIX = [
     "isic_mel", "ham10000_mel",        # dermoscopy
     "chexpert_pe", "chexpert_cm",      # chest radiography
-    "patchcamelyon", "nct_crc_tum",    # histopathology
+    "patchcamelyon", "pathmnist_bin",  # histopathology
 ]
 
 ALL_METHODS = [
