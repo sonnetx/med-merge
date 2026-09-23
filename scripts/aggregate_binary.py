@@ -6,9 +6,10 @@ vit/seed_42 lives at seed_42_cap2k too (the pilot). Works on partial results.
 """
 from __future__ import annotations
 import json, statistics
+import os
 from pathlib import Path
 
-PD = Path("/home/groups/roxanad/sonnet/med-merge")
+PD = Path(os.environ.get("PROJECT_DIR", Path(__file__).resolve().parents[1]))
 BACKBONES = ["clip", "vit", "dinov3", "rad_dino", "dinov2", "mae", "beit"]
 SEEDS = [42, 123, 456]
 METHODS = ["simple_avg", "task_arithmetic", "ties", "dare", "dare_ties",

@@ -21,7 +21,7 @@ if [ -z "${WANDB_MODE:-}" ] && [ -n "${WANDB_API_KEY:-}" ]; then
     WANDB_MODE="online"
 fi
 
-PROJECT_DIR="${PROJECT_DIR:-/home/groups/roxanad/sonnet/med-merge}"
+PROJECT_DIR="${PROJECT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
 VENV_DIR="${VENV_DIR:-${PROJECT_DIR}/venv}"
 OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_DIR}/outputs_tuned}"
 

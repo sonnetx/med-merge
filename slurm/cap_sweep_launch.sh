@@ -4,7 +4,7 @@
 # is the largest matched cap and the curve can only extend downward.
 # Usage: ./cap_sweep_launch.sh [cap ...]   (default: 500 1000)
 set -uo pipefail
-PD=/home/groups/roxanad/sonnet/med-merge
+PD="${PROJECT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
 CAPS="${*:-500 1000}"
 SEEDS="${SEEDS:-42 123 456}"
 

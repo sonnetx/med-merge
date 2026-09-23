@@ -16,8 +16,8 @@ from med_merge.config.constants import ALL_DATASETS, ALL_METHODS, SEEDS, PRIMARY
 class TestModelConfig:
     def test_defaults(self):
         m = ModelConfig()
-        assert m.backbone == "openai/clip-vit-base-patch16"
-        assert m.hidden_size == 768
+        assert m.backbone == "facebook/dinov3-vits16-pretrain-lvd1689m"
+        assert m.hidden_size == 384
         assert m.num_layers == 12
 
     def test_custom(self):

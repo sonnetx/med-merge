@@ -15,7 +15,7 @@ set -euo pipefail
 ml gcc/12.4.0
 ml python/3.12.1
 
-PROJECT_DIR="${PROJECT_DIR:-/home/groups/roxanad/sonnet/med-merge}"
+PROJECT_DIR="${PROJECT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
 VENV_DIR="${VENV_DIR:-${PROJECT_DIR}/venv}"
 # Exported so the single-quoted heredoc below picks it up via os.environ
 # (otherwise Python sees the literal "$USER").

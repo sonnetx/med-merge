@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${PROJECT_DIR:-/home/groups/roxanad/sonnet/med-merge}"
+PROJECT_DIR="${PROJECT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
 cd "$PROJECT_DIR"
 mkdir -p logs
 

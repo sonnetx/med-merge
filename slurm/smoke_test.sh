@@ -36,7 +36,7 @@ fi
 echo "Python: $(which python3) — $(python3 --version)"
 
 # --- Paths ---
-PROJECT_DIR="${PROJECT_DIR:-/home/groups/roxanad/sonnet/med-merge}"
+PROJECT_DIR="${PROJECT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
 VENV_DIR="${VENV_DIR:-${PROJECT_DIR}/venv}"
 OUTPUT_DIR="${PROJECT_DIR}/outputs"
 

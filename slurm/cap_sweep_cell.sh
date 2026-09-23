@@ -5,8 +5,8 @@
 #SBATCH --time=10:00:00
 #SBATCH --mem=48G
 #SBATCH --cpus-per-task=8
-#SBATCH --output=/home/groups/roxanad/sonnet/med-merge/logs/%x_%j.out
-#SBATCH --error=/home/groups/roxanad/sonnet/med-merge/logs/%x_%j.err
+#SBATCH --output=logs/%x_%j.out
+#SBATCH --error=logs/%x_%j.err
 # Training-budget ablation cell: one (backbone, seed, cap) on the binary trio.
 # Mirrors bin2k_cell.sh but takes CAP from the environment and writes to
 # outputs/$BB/seed_${SEED}_cap${CAP}. Only the leading tuned methods plus the
@@ -14,7 +14,7 @@
 set -uo pipefail
 ml gcc/12.4.0 python/3.12.1 cuda/12.4.0
 [ -f "$HOME/.secrets" ] && source "$HOME/.secrets"
-PD=/home/groups/roxanad/sonnet/med-merge
+PD="${PROJECT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
 source "$PD/venv/bin/activate"
 export PYTHONPATH="$PD/src"
 export HF_HOME=/scratch/users/$USER/huggingface

@@ -9,11 +9,24 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 
+# ==========================================================================
+# med-merge Research Benchmark
+#
+# Full experimental grid for the paper:
+#   backbones x 3 datasets (isic2017, chexpert, pathmnist) x 3 seeds x 11 merge methods
+#   (incl. iso_c + tsv_merge SOTA baselines and the novel gram_ls method)
+#
+# Answers all three research questions:
+#   RQ1: Can merging preserve performance across medical domains?
+#   RQ2: How does merge quality vary with lambda/sparsity? (hyperopt)
+#   RQ3: Does the base model matter? (multi-backbone)
+#
 # Usage:
 #   sbatch slurm/research_benchmark.sh                         # full run
 #   sbatch --export=ALL,BACKBONES=clip slurm/research_benchmark.sh  # single backbone
 #   sbatch --export=ALL,SEEDS="42" slurm/research_benchmark.sh     # single seed
 #   sbatch --export=ALL,SKIP_TRAIN=1 slurm/research_benchmark.sh   # merge+eval only
+# ==========================================================================
 
 set -euo pipefail
 
@@ -33,7 +46,7 @@ fi
 echo "Python: $(which python3) — $(python3 --version)"
 
 # --- Paths ---
-PROJECT_DIR="${PROJECT_DIR:-/home/groups/roxanad/sonnet/med-merge}"
+PROJECT_DIR="${PROJECT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
 VENV_DIR="${VENV_DIR:-${PROJECT_DIR}/venv}"
 BASE_OUTPUT_DIR="${PROJECT_DIR}/outputs"
 
@@ -58,7 +71,7 @@ cd "$PROJECT_DIR"
 mkdir -p logs
 
 # --- Experimental grid ---
-DATASETS="${DATASETS:-isic2017 chexpert tcga}"
+DATASETS="${DATASETS:-isic2017 chexpert pathmnist}"
 SEEDS="${SEEDS:-42 123 456}"
 SKIP_TRAIN="${SKIP_TRAIN:-0}"
 DEVICE="cuda"
@@ -78,8 +91,10 @@ BACKBONE_IDS[mae]="facebook/vit-mae-base"
 BACKBONE_IDS[beit]="microsoft/beit-base-patch16-224-pt22k-ft22k"
 BACKBONE_IDS[medclip]="flaviagiammarino/medclip-vit"
 
-# Methods to run (skip slerp by default — needs exactly 2 tasks)
-METHODS="simple_avg task_arithmetic ties dare dare_ties pcb_merging lines fisher"
+# Methods to run (skip slerp by default — needs exactly 2 tasks).
+# iso_c + tsv_merge are the 2025 SVD/subspace SOTA baselines; gram_ls is the
+# novel task-vector Gram-matrix (projection-preserving) method.
+METHODS="simple_avg task_arithmetic ties dare dare_ties pcb_merging lines fisher iso_c tsv_merge gram_ls"
 
 echo "============================================================"
 echo "med-merge Research Benchmark"

@@ -19,7 +19,7 @@ ml gcc/12.4.0
 ml python/3.12.1
 ml cuda/12.4.0
 
-PROJECT_DIR="${PROJECT_DIR:-/home/groups/roxanad/sonnet/med-merge}"
+PROJECT_DIR="${PROJECT_DIR:-${SLURM_SUBMIT_DIR:-$PWD}}"
 VENV_DIR="${VENV_DIR:-${PROJECT_DIR}/venv}"
 
 # Remove existing environment if it exists (in case of partial/failed install)
