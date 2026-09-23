@@ -1,0 +1,13 @@
+dataset:
+  name: nct_crc_tum
+  source: zenodo/1214456
+  num_classes: 1
+  task_type: binary
+  image_size: 224
+  class_names:
+    - not_TUM
+    - TUM
+  split_seed: 42
+  split_ratios: [0.8, 0.1, 0.1]
+  # Same NCT-CRC images as the 9-class config, recast as tumor vs rest.
+  # A second histopathology task alongside patchcamelyon.

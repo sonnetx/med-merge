@@ -1,0 +1,13 @@
+dataset:
+  name: chexpert_cm
+  source: local
+  num_classes: 1
+  task_type: binary
+  image_size: 224
+  class_names:
+    - no_Cardiomegaly
+    - Cardiomegaly
+  # Reuses CheXpert (persistent OAK); the loader reduces to the Cardiomegaly label.
+  # A second chest-radiograph task alongside chexpert_pe.
+  data_dir: /oak/stanford/groups/roxanad/bikia/processed_chexpert/combined_train_valid_chexpert_v1.0
+  csv_path: /oak/stanford/groups/roxanad/bikia/processed_chexpert/explore_chexpert/train_valid_combined.csv

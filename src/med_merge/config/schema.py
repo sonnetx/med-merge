@@ -106,7 +106,13 @@ class MergingConfig(BaseModel):
 
     # Task Arithmetic / shared scaling coefficient
     alpha: Optional[float] = None
-    alpha_search: list[float] = [0.1, 0.3, 0.5, 0.7, 0.9]  # 5
+    # Extended past 1.0 because the subspace methods (Iso-C, Iso-CTS, TSV) selected the old
+    # grid's maximum of 0.9 in nearly every cell, so their optimum lay outside the search.
+    # Marczak et al. report the optimal alpha rising as task count falls (1.40 at 8 tasks),
+    # which at 3 tasks is well above 1.0. Widened for every method so the change is symmetric.
+    # Grid extended until no method selects its boundary. Iso-C still chose 2.5 in 3 of 21
+    # cells at the previous ceiling, so 3.0 and 4.0 are included to rule out further clipping.
+    alpha_search: list[float] = [0.1, 0.3, 0.5, 0.7, 0.9, 1.2, 1.5, 2.0, 2.5, 3.0, 4.0]  # 11
 
     # TIES
     trim_fraction: float = 0.2

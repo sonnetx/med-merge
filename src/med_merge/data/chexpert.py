@@ -121,3 +121,9 @@ class CheXpertDataset:
 
     def __new__(cls, data_dir="./data/chexpert", split="train", transform=None, **kwargs):
         return load_chexpert(data_dir, split, transform, **kwargs)
+
+
+def load_chexpert_cm(data_dir: str, split: str = "train", transform=None, **kwargs):
+    """CheXpert as binary Cardiomegaly detection, a second chest-radiograph task."""
+    kwargs.pop("binary_label", None)
+    return load_chexpert(data_dir, split, transform, binary_label="Cardiomegaly", **kwargs)

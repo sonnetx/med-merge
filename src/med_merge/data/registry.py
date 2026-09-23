@@ -23,6 +23,10 @@ _LOADER_REGISTRY: dict[str, tuple[str, str]] = {
     "patchcamelyon": ("med_merge.data.patchcamelyon", "PatchCamelyonDataset"),
     # Binary controlled trio (one task type across three disjoint domains).
     "isic_mel": ("med_merge.data.isic2017", "load_isic_mel"),
+    # Second task per domain, for the task-count extension (all binary, AUROC).
+    "ham10000_mel": ("med_merge.data.binarize", "load_ham10000_mel"),
+    "nct_crc_tum": ("med_merge.data.binarize", "load_nct_crc_tum"),
+    "chexpert_cm": ("med_merge.data.chexpert", "load_chexpert_cm"),
     "chexpert_pe": ("med_merge.data.chexpert", "load_chexpert_pe"),
     "aptos2019": ("med_merge.data.aptos2019", "APTOS2019Dataset"),
     "ham10000": ("med_merge.data.ham10000", "HAM10000Dataset"),

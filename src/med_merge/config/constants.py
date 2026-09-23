@@ -6,6 +6,7 @@ from __future__ import annotations
 ALL_DATASETS = [
     "isic2017", "chexpert", "pathmnist", "tcga", "nih_cxr", "retinamnist",
     "isic_mel", "chexpert_pe", "patchcamelyon", "pathmnist_bin",
+    "ham10000_mel", "nct_crc_tum", "chexpert_cm",
 ]
 
 # Study cores.
@@ -15,6 +16,13 @@ MULTICLASS_CORE = ["isic2017", "chexpert", "pathmnist"]
 # BINARY_CORE (primary controlled study): one task type across the three domains,
 #   melanoma detection / pleural effusion / tumor detection. Same metric + head.
 BINARY_CORE = ["isic_mel", "chexpert_pe", "patchcamelyon"]
+# BINARY_SIX: the task-count extension. Two tasks per domain, so task count doubles while
+# the domains stay fixed, and the within-domain pairs raise task-vector correlation.
+BINARY_SIX = [
+    "isic_mel", "ham10000_mel",        # dermoscopy
+    "chexpert_pe", "chexpert_cm",      # chest radiography
+    "patchcamelyon", "nct_crc_tum",    # histopathology
+]
 
 ALL_METHODS = [
     "simple_avg",
@@ -48,6 +56,9 @@ PRIMARY_METRICS: dict[str, str] = {
     "chexpert_pe": "auroc",
     "patchcamelyon": "auroc",
     "pathmnist_bin": "auroc",
+    "ham10000_mel": "auroc",
+    "nct_crc_tum": "auroc",
+    "chexpert_cm": "auroc",
 }
 
 # Dataset metadata: num_classes, task_type, class_names

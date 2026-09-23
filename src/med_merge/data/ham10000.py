@@ -17,6 +17,29 @@ logger = logging.getLogger(__name__)
 CLASS_NAMES = ["akiec", "bcc", "bkl", "df", "mel", "nv", "vasc"]
 CLASS_TO_IDX = {name: i for i, name in enumerate(CLASS_NAMES)}
 
+# The HuggingFace copy (marmal88/skin_cancer) spells diagnoses out rather than using the
+# HAM10000 abbreviations, so an unmapped lookup silently collapses every image onto class 0.
+DX_ALIASES = {
+    "actinic_keratoses": "akiec",
+    "basal_cell_carcinoma": "bcc",
+    "benign_keratosis-like_lesions": "bkl",
+    "dermatofibroma": "df",
+    "melanoma": "mel",
+    "melanocytic_Nevi": "nv",
+    "vascular_lesions": "vasc",
+}
+
+
+def _dx_to_index(dx: str) -> int:
+    """Map a diagnosis string to its class index, accepting either spelling."""
+    key = DX_ALIASES.get(dx, dx)
+    if key not in CLASS_TO_IDX:
+        raise ValueError(
+            f"unrecognized HAM10000 diagnosis {dx!r}; known values are "
+            f"{sorted(CLASS_TO_IDX)} or {sorted(DX_ALIASES)}"
+        )
+    return CLASS_TO_IDX[key]
+
 
 class HAM10000Dataset(Dataset):
     """HAM10000 skin lesion classification dataset.
@@ -76,7 +99,7 @@ class HAM10000Dataset(Dataset):
             row = ds[idx]
             self._images.append(row["image"])
             dx = row["dx"]
-            self._labels.append(CLASS_TO_IDX.get(dx, 0))
+            self._labels.append(_dx_to_index(dx))
 
         logger.info(
             f"HAM10000 {self.split}: {len(self._images)} images, "

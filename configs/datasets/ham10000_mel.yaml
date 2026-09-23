@@ -1,0 +1,15 @@
+dataset:
+  name: ham10000_mel
+  source: marmal88/skin_cancer
+  num_classes: 1
+  task_type: binary
+  image_size: 224
+  class_names:
+    - not_mel
+    - mel
+  split_seed: 42
+  split_ratios: [0.8, 0.1, 0.1]
+  # Lesion-aware split, so no lesion crosses a split boundary.
+  group_by: lesion_id
+  # Same HAM10000 images as the 7-class config; only the label structure differs
+  # (melanoma vs rest). A second dermoscopy task alongside isic_mel.
